@@ -296,3 +296,18 @@ func TestConnectProcessWebSocketBinaryEventFrames(t *testing.T) {
 		t.Fatalf("events = %#v", events)
 	}
 }
+
+func TestProcessDataEventDecodesBase64(t *testing.T) {
+	event := ProcessDataEvent{Stdout: "aGVsbG8="}
+	out, err := event.StdoutBytes()
+	if err != nil || string(out) != "hello" {
+		t.Fatalf("StdoutBytes = %q, %v", out, err)
+	}
+	pty, err := event.PtyBytes()
+	if err != nil || pty != nil {
+		t.Fatalf("PtyBytes = %v, %v", pty, err)
+	}
+	if _, err := (ProcessDataEvent{Stdout: "!!!"}).StdoutBytes(); err == nil {
+		t.Fatal("expected base64 decode error")
+	}
+}

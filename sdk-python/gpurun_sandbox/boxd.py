@@ -437,4 +437,16 @@ class BoxdClient:
         self._json("POST", "/process.Process/SendSignal", req, sandbox_id, _CONNECT_JSON)
 
 
-__all__ = ["BoxdClient", "ProcessStream"]
+def decode_data_field(value: Optional[str]) -> Optional[bytes]:
+    """Decode a base64 Connect-stream data field (stdout/stderr/pty).
+
+    The Connect envelope is JSON, so these fields are standard base64
+    strings; decode before use. Returns None when the field is absent,
+    raises binascii.Error (a ValueError) on invalid base64.
+    """
+    if value is None:
+        return None
+    return base64.b64decode(value, validate=True)
+
+
+__all__ = ["BoxdClient", "ProcessStream", "decode_data_field"]

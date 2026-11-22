@@ -1,5 +1,7 @@
 package boxd
 
+import "encoding/base64"
+
 const DefaultBaseURL = "http://127.0.0.1:8082"
 
 const SandboxIDHeader = "Novita-Sandbox-Id"
@@ -111,10 +113,30 @@ type ProcessStartEvent struct {
 	PID int `json:"pid"`
 }
 
+// ProcessDataEvent carries one chunk of process output from the Connect
+// stream. The fields are standard base64 strings because the Connect
+// envelope is JSON and cannot carry raw bytes; decode them before use,
+// or call StdoutBytes/StderrBytes/PtyBytes.
 type ProcessDataEvent struct {
 	Stdout string `json:"stdout,omitempty"`
 	Stderr string `json:"stderr,omitempty"`
 	Pty    string `json:"pty,omitempty"`
+}
+
+// StdoutBytes base64-decodes the stdout field.
+func (e ProcessDataEvent) StdoutBytes() ([]byte, error) { return decodeDataBase64(e.Stdout) }
+
+// StderrBytes base64-decodes the stderr field.
+func (e ProcessDataEvent) StderrBytes() ([]byte, error) { return decodeDataBase64(e.Stderr) }
+
+// PtyBytes base64-decodes the pty field.
+func (e ProcessDataEvent) PtyBytes() ([]byte, error) { return decodeDataBase64(e.Pty) }
+
+func decodeDataBase64(value string) ([]byte, error) {
+	if value == "" {
+		return nil, nil
+	}
+	return base64.StdEncoding.DecodeString(value)
 }
 
 type ProcessEventBody struct {

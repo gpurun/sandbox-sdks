@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import test from 'node:test';
-import { BoxdClient, BoxdError } from '../dist/index.js';
+import { BoxdClient, BoxdError, decodeDataField } from '../dist/index.js';
 
 async function withServer(handler, run) {
   const server = createServer(handler);
@@ -270,4 +270,11 @@ test('connectProcess tolerates binary event frames rewritten by boxproxy', async
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
   }
+});
+
+test('decodeDataField decodes base64 connect data fields', () => {
+  assert.deepEqual(Buffer.from(decodeDataField('aGVsbG8=')).toString('utf8'), 'hello');
+  assert.equal(decodeDataField(undefined), undefined);
+  assert.equal(decodeDataField(''), undefined);
+  assert.throws(() => decodeDataField('!!!'), (error) => error instanceof BoxdError && error.status === 502);
 });

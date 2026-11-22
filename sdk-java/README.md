@@ -104,7 +104,9 @@ try (Gpurun client = Gpurun.create()) {
 }
 ```
 
-BoxAPI defaults to `http://localhost:8080`; boxd defaults to `http://localhost:8082`. Override with `GPURUN_BASE_URL` / `GPURUN_DATA_URL`, with `SandboxOptions.boxApiBaseUrl(...)` / `boxDataUrl(...)`, or with each client's builder. Every boxd request sends `Novita-Sandbox-Id` and the `sandboxID` query parameter; set the sandbox ID via `GPURUN_SANDBOX_ID` or `SandboxOptions.sandboxId(...)`.
+BoxAPI defaults to `http://localhost:8080`; boxd defaults to `http://localhost:8082`. Override with `GPURUN_BOXAPI_URL` / `GPURUN_BOXD_URL`, with `SandboxOptions.boxApiBaseUrl(...)` / `boxDataUrl(...)`, or with each client's builder. Every boxd request sends `Novita-Sandbox-Id` and the `sandboxID` query parameter; set the sandbox ID via `GPURUN_SANDBOX_ID` or `SandboxOptions.sandboxId(...)`.
+
+Connect-stream process `data` events carry base64-encoded `stdout`/`stderr`/`pty` strings (the JSON envelope cannot hold raw bytes); decode with `ProcessDataEvent.decodeStdout()` / `decodeStderr()` / `decodePty()` before use.
 
 `BoxApiException` and `BoxdException` are unchecked and expose `getStatus()` and `getCode()`. `BoxdClient.exec` parses both 200 and 422 bodies; 422 carries a non-zero exit code. `connectProcess` returns a WebSocket-backed handle with `send`, `close` and `awaitEnd`; Connect streams return `ProcessStream` with the same lifecycle. Connect frame decoding is available through `BoxdClient.decodeFrame`.
 

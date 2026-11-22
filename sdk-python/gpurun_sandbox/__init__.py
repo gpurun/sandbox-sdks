@@ -8,7 +8,7 @@ from .auth import (
     resolve_data_url,
 )
 from .boxapi import BoxApiClient
-from .boxd import BoxdClient, ProcessStream
+from .boxd import BoxdClient, ProcessStream, decode_data_field
 from .errors import BoxApiError, BoxdError
 from .gpurun import Gpurun
 from .types import *
@@ -23,6 +23,7 @@ __all__ = [
     "BoxdError",
     "ProcessSocket",
     "ProcessStream",
+    "decode_data_field",
     "WebSocket",
     "WebSocketFrame",
     "FrameDecoder",

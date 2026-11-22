@@ -407,6 +407,7 @@ export interface SendSignalRequest {
 export interface ProcessEvent {
   event: {
     start?: { pid: number; [key: string]: unknown };
+    /** stdout/stderr/pty are standard base64 strings (JSON envelope) — decode, e.g. with decodeDataField, before use. */
     data?: { stdout?: string; stderr?: string; pty?: string; [key: string]: unknown };
     keepalive?: JsonRecord;
     end?: EndEvent;

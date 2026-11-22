@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -123,10 +124,34 @@ public final class BoxdModels {
         public int pid;
     }
 
+    /**
+     * One chunk of Connect-stream process output. Fields are standard base64
+     * strings because the Connect envelope is JSON and cannot carry raw
+     * bytes; decode before use, or call the decode helpers.
+     */
     public static class ProcessDataEvent {
         public String stdout;
         public String stderr;
         public String pty;
+
+        /** Base64-decodes stdout; empty array when the field is absent. */
+        public byte[] decodeStdout() { return decodeField(stdout); }
+
+        /** Base64-decodes stderr; empty array when the field is absent. */
+        public byte[] decodeStderr() { return decodeField(stderr); }
+
+        /** Base64-decodes pty; empty array when the field is absent. */
+        public byte[] decodePty() { return decodeField(pty); }
+
+        private static byte[] decodeField(String value) {
+            if (value == null || value.isEmpty()) return new byte[0];
+            try {
+                return Base64.getDecoder().decode(value);
+            } catch (IllegalArgumentException e) {
+                throw new BoxdException(502, "invalid_response",
+                        "invalid base64 in process data event", e);
+            }
+        }
     }
 
     public static class ProcessEventBody {

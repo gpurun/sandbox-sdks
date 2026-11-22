@@ -324,5 +324,14 @@ class BoxdTest(unittest.TestCase):
         self.assertEqual(end, {"exitCode": 3, "exited": True, "status": "exited"})
 
 
+    def test_decode_data_field(self):
+        from gpurun_sandbox import decode_data_field
+
+        self.assertEqual(decode_data_field("aGVsbG8="), b"hello")
+        self.assertIsNone(decode_data_field(None))
+        with self.assertRaises(ValueError):
+            decode_data_field("!!!")
+
+
 if __name__ == "__main__":
     unittest.main()

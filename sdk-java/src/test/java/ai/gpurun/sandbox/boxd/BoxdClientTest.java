@@ -220,4 +220,17 @@ class BoxdClientTest {
         assertEquals("aGk=", body.getAsJsonObject("input").get("stdin").getAsString());
         assertEquals("Aw==", body.getAsJsonObject("input").get("pty").getAsString());
     }
+
+    @Test
+    public void processDataEventDecodesBase64() {
+        ProcessDataEvent data = new ProcessDataEvent();
+        data.stdout = "aGVsbG8=";
+        assertEquals("hello", new String(data.decodeStdout(), StandardCharsets.UTF_8));
+        assertEquals(0, data.decodeStderr().length);
+        assertEquals(0, data.decodePty().length);
+        data.stdout = null;
+        assertEquals(0, data.decodeStdout().length);
+        data.stdout = "!!!";
+        assertThrows(BoxdException.class, data::decodeStdout);
+    }
 }

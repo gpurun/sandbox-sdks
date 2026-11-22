@@ -647,4 +647,20 @@ export class BoxdClient {
   }
 }
 
-export { processSelector };
+const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+/**
+ * Decodes a base64 Connect-stream data field (stdout/stderr/pty).
+ * The Connect envelope is JSON, so these fields are standard base64
+ * strings — decode before use. Returns undefined when the field is
+ * absent, throws BoxdError(502) on invalid base64.
+ */
+function decodeDataField(value: string | undefined): Uint8Array | undefined {
+  if (value === undefined || value === '') return undefined;
+  if (!BASE64_PATTERN.test(value)) {
+    throw new BoxdError('invalid base64 in process data event', 502);
+  }
+  return new Uint8Array(Buffer.from(value, 'base64'));
+}
+
+export { processSelector, decodeDataField };

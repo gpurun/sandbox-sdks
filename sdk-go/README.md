@@ -41,8 +41,9 @@ go get github.com/gpurun/gpurun-sandbox/sdk-go
 
 Export your API key as `GPURUN_API_KEY` (or `NOVITA_API_KEY`). An access token
 through `AccessToken`, `GPURUN_ACCESS_TOKEN` or `NOVITA_ACCESS_TOKEN` is also supported.
-`GPURUN_BASE_URL` and `GPURUN_DATA_URL` override the boxapi and boxproxy addresses;
+`GPURUN_BOXAPI_URL` and `GPURUN_BOXD_URL` override the boxapi and boxproxy addresses;
 they default to `http://localhost:8080` and `http://localhost:8082`.
+(`GPURUN_BASE_URL` / `GPURUN_DATA_URL` override the legacy control-plane endpoints.)
 
 Use the root `gpurun` facade as the default entrypoint. Configure credentials and
 service addresses on the client; set the template and lifetime on each sandbox
@@ -450,7 +451,10 @@ The SDK talks to two planes, mirroring the JS and Python SDKs:
   commands, PTY, and streaming operations.
 
 Data-plane calls speak the Connect RPC protocol with JSON encoding and need no
-generated protobuf code. Secret host normalization rejects malformed ACE labels
+generated protobuf code. Connect-stream process `data` events carry base64-encoded
+`stdout`/`stderr`/`pty` strings (the JSON envelope cannot hold raw bytes); decode
+them with `ProcessDataEvent.StdoutBytes` / `StderrBytes` / `PtyBytes` or
+`base64.StdEncoding.DecodeString` before use. Secret host normalization rejects malformed ACE labels
 and uses `golang.org/x/net/idna` to convert internationalized domain names to
 ASCII before validation.
 
