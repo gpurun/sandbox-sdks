@@ -1020,13 +1020,17 @@ func fileHash(src, dest, contextPath string, ignorePatterns []string, resolveSym
 	if len(paths) == 0 {
 		return "", fmt.Errorf("no files found in %s", filepath.Join(contextPath, src))
 	}
-	io.WriteString(h, "COPY "+src+" "+dest)
+	if _, err := io.WriteString(h, "COPY "+src+" "+dest); err != nil {
+		return "", err
+	}
 	for _, p := range paths {
 		rel, err := filepath.Rel(contextPath, p)
 		if err != nil {
 			return "", err
 		}
-		io.WriteString(h, filepath.ToSlash(rel))
+		if _, err := io.WriteString(h, filepath.ToSlash(rel)); err != nil {
+			return "", err
+		}
 		fi, err := os.Lstat(p)
 		if err != nil {
 			return "", err
@@ -1037,7 +1041,9 @@ func fileHash(src, dest, contextPath string, ignorePatterns []string, resolveSym
 			if err != nil {
 				return "", err
 			}
-			io.WriteString(h, target)
+			if _, err := io.WriteString(h, target); err != nil {
+				return "", err
+			}
 			continue
 		}
 		st, err := os.Stat(p)
@@ -1066,8 +1072,8 @@ func writePythonStat(w io.Writer, info os.FileInfo) {
 	if stat, ok := info.Sys().(*syscall.Stat_t); ok {
 		mode = uint64(stat.Mode)
 	}
-	io.WriteString(w, strconv.FormatUint(mode, 10))
-	io.WriteString(w, strconv.FormatInt(info.Size(), 10))
+	_, _ = io.WriteString(w, strconv.FormatUint(mode, 10))
+	_, _ = io.WriteString(w, strconv.FormatInt(info.Size(), 10))
 }
 
 func validateTemplateSource(src string) error {

@@ -240,7 +240,7 @@ func (s *Sandbox) ScreenshotBytes(ctx context.Context) ([]byte, error) {
 	if _, err := s.Commands.Run(ctx, "scrot --pointer "+shellQuote(path), nil); err != nil {
 		return nil, err
 	}
-	defer s.Files.Remove(context.Background(), path, nil)
+	defer func() { _ = s.Files.Remove(context.Background(), path, nil) }()
 	return s.Files.Read(ctx, path, nil)
 }
 

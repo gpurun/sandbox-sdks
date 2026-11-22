@@ -220,11 +220,11 @@ func TestJobWaitContextAndPollingBounds(t *testing.T) {
 		calls.Add(1)
 		fmt.Fprint(w, `{"items":[{"jobId":"j","status":"completed"}]}`)
 	})
-	if _, err := job.Wait(nil, "j", JobWaitOptions{}); err != nil {
+	if _, err := job.Wait(context.TODO(), "j", JobWaitOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	zero := time.Duration(0)
-	if _, err := job.Wait(nil, "j", JobWaitOptions{Timeout: &zero}); err == nil || calls.Load() != 1 {
+	if _, err := job.Wait(context.TODO(), "j", JobWaitOptions{Timeout: &zero}); err == nil || calls.Load() != 1 {
 		t.Fatalf("zero timeout: calls=%d error=%v", calls.Load(), err)
 	}
 	t.Run("cancel active request", func(t *testing.T) {

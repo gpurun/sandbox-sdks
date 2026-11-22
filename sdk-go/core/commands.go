@@ -385,27 +385,6 @@ func (h *CommandHandle) waitForStart(ctx context.Context) error {
 	}
 }
 
-// processEvent mirrors the process.ProcessEvent oneof.
-type processEvent struct {
-	Event *struct {
-		Start *struct {
-			PID uint32 `json:"pid"`
-		} `json:"start"`
-		Data *struct {
-			Stdout []byte `json:"stdout"`
-			Stderr []byte `json:"stderr"`
-			Pty    []byte `json:"pty"`
-		} `json:"data"`
-		End *struct {
-			ExitCode int32  `json:"exitCode"`
-			Exited   bool   `json:"exited"`
-			Status   string `json:"status"`
-			Error    string `json:"error"`
-		} `json:"end"`
-		Keepalive *struct{} `json:"keepalive"`
-	} `json:"event"`
-}
-
 // handleEvent consumes one streamed process event.
 func (h *CommandHandle) handleEvent(payload []byte) error {
 	var wrapper struct {
@@ -497,15 +476,6 @@ func (h *CommandHandle) handleEvent(payload []byte) error {
 // finish closes the done channel exactly once.
 func (h *CommandHandle) finish() {
 	h.closeOnce.Do(func() { close(h.done) })
-}
-
-// setError records a stream error.
-func (h *CommandHandle) setError(err error) {
-	h.mu.Lock()
-	if h.err == nil {
-		h.err = err
-	}
-	h.mu.Unlock()
 }
 
 // Wait blocks until the command exits and returns its result.

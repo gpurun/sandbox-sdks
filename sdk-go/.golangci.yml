@@ -1,0 +1,13 @@
+version: "2"
+
+linters:
+  default: standard
+  exclusions:
+    presets:
+      # Common plumbing: ignoring Close/Flush/print on teardown paths.
+      - std-error-handling
+    rules:
+      # Tests intentionally ignore cleanup/write errors.
+      - path: _test\.go
+        linters:
+          - errcheck

@@ -219,7 +219,7 @@ func parseImageReference(image string) (imageReference, error) {
 		if err != nil || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || parsed.Host == "" {
 			return result, fmt.Errorf("invalid image reference")
 		}
-		if parsed.Scheme != "https" && !(parsed.Scheme == "http" && loopbackHost(parsed.Hostname())) {
+		if parsed.Scheme != "https" && (parsed.Scheme != "http" || !loopbackHost(parsed.Hostname())) {
 			return result, fmt.Errorf("registry requires HTTPS (HTTP is supported for loopback fixtures)")
 		}
 		scheme = parsed.Scheme
@@ -424,7 +424,7 @@ func (r *registryReader) authenticate(ctx context.Context, challenge string) err
 		return &registryHTTPError{http.StatusUnauthorized}
 	}
 	endpoint, err := url.Parse(params["realm"])
-	if err != nil || endpoint.Host == "" || endpoint.User != nil || (endpoint.Scheme != "https" && !(endpoint.Scheme == "http" && loopbackHost(endpoint.Hostname()))) {
+	if err != nil || endpoint.Host == "" || endpoint.User != nil || (endpoint.Scheme != "https" && (endpoint.Scheme != "http" || !loopbackHost(endpoint.Hostname()))) {
 		return fmt.Errorf("invalid registry authentication endpoint")
 	}
 	query := endpoint.Query()
@@ -492,7 +492,7 @@ func registryRedirect(req *http.Request, via []*http.Request) error {
 	if via[len(via)-1].URL.Scheme == "https" && req.URL.Scheme != "https" {
 		return fmt.Errorf("HTTPS registry redirect cannot downgrade transport")
 	}
-	if req.URL.Scheme != "https" && !(req.URL.Scheme == "http" && loopbackHost(req.URL.Hostname())) {
+	if req.URL.Scheme != "https" && (req.URL.Scheme != "http" || !loopbackHost(req.URL.Hostname())) {
 		return fmt.Errorf("insecure registry redirect")
 	}
 	return nil

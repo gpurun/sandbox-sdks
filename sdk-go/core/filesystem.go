@@ -568,7 +568,7 @@ func (f *Filesystem) WriteStream(ctx context.Context, path string, data io.Reade
 		query.Set("username", user)
 	}
 	octet := opts.UseOctetStream && compareVersions(f.sandbox.envdVersion, EnvdOctetStreamUpload) >= 0
-	var body io.Reader = data
+	var body = data
 	contentType := "application/octet-stream"
 	encoding := ""
 	if octet {

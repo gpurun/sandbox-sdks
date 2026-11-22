@@ -31,7 +31,8 @@ def _to_error(status: int, text: str, reason: Any = None) -> BoxdError:
             value = None
         if isinstance(value, dict):
             nested = value.get("error")
-            for candidate in (value.get("message"), value.get("error"), nested.get("message") if isinstance(nested, dict) else None, value.get("detail")):
+            nested_message = nested.get("message") if isinstance(nested, dict) else None
+            for candidate in (value.get("message"), value.get("error"), nested_message, value.get("detail")):
                 if isinstance(candidate, str) and candidate:
                     message = candidate
                     break

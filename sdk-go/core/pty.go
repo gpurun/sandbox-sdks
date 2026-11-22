@@ -310,15 +310,6 @@ func (h *PtyHandle) finish() {
 	h.closeOnce.Do(func() { close(h.done) })
 }
 
-// setError records a stream error.
-func (h *PtyHandle) setError(err error) {
-	h.mu.Lock()
-	if h.err == nil {
-		h.err = err
-	}
-	h.mu.Unlock()
-}
-
 // SendData writes input to the terminal.
 func (h *PtyHandle) SendData(ctx context.Context, data string) error {
 	pid := h.PID()

@@ -58,13 +58,6 @@ func newTestSandbox(t *testing.T, envdVersion string, handler http.Handler) *San
 	return sandbox
 }
 
-// rpcRoute describes one expected Connect call.
-type rpcRoute struct {
-	method  string
-	request interface{}
-	respond func(w http.ResponseWriter)
-}
-
 // newRPCServer serves Connect JSON responses for the given methods.
 func newRPCServer(t *testing.T, routes map[string]func(w http.ResponseWriter, r *http.Request)) http.Handler {
 	t.Helper()
@@ -176,7 +169,7 @@ func TestFilesystemRead(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.5.7", handler)
 
-	data, err := sandbox.Files.Read(nil, "/tmp/hello.txt", nil)
+	data, err := sandbox.Files.Read(context.TODO(), "/tmp/hello.txt", nil)
 	if err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
@@ -204,7 +197,7 @@ func TestFilesystemReadAppliesDefaultUserOnOldEnvd(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.3.0", handler)
 
-	if _, err := sandbox.Files.Read(nil, "/tmp/x", nil); err != nil {
+	if _, err := sandbox.Files.Read(context.TODO(), "/tmp/x", nil); err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
 	if gotUser != DefaultUsername {
@@ -220,7 +213,7 @@ func TestFilesystemReadNotFound(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.5.7", handler)
 
-	_, err := sandbox.Files.Read(nil, "/tmp/missing", nil)
+	_, err := sandbox.Files.Read(context.TODO(), "/tmp/missing", nil)
 	if err == nil {
 		t.Fatal("expected an error")
 	}
@@ -260,7 +253,7 @@ func TestFilesystemWriteMultipart(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.5.0", handler)
 
-	info, err := sandbox.Files.WriteText(nil, "/tmp/a.txt", "content", nil)
+	info, err := sandbox.Files.WriteText(context.TODO(), "/tmp/a.txt", "content", nil)
 	if err != nil {
 		t.Fatalf("Write failed: %v", err)
 	}
@@ -291,7 +284,7 @@ func TestFilesystemWriteOctetStream(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.5.7", handler)
 
-	_, err := sandbox.Files.Write(nil, "/tmp/b.txt", []byte("raw-bytes"), &FilesystemWriteOpts{
+	_, err := sandbox.Files.Write(context.TODO(), "/tmp/b.txt", []byte("raw-bytes"), &FilesystemWriteOpts{
 		UseOctetStream: true,
 	})
 	if err != nil {
@@ -313,7 +306,7 @@ func TestFilesystemWriteFallsBackFromOctetStreamOnOldEnvd(t *testing.T) {
 	// envd below the octet-stream gate must fall back to multipart.
 	sandbox := newTestSandbox(t, "0.5.6", handler)
 
-	_, err := sandbox.Files.Write(nil, "/tmp/c.txt", []byte("x"), &FilesystemWriteOpts{
+	_, err := sandbox.Files.Write(context.TODO(), "/tmp/c.txt", []byte("x"), &FilesystemWriteOpts{
 		UseOctetStream: true,
 	})
 	if err != nil {
@@ -342,7 +335,7 @@ func TestFilesystemWriteFilesMultiple(t *testing.T) {
 		{Path: "/a.txt", Data: []byte("a")},
 		{Path: "/b.txt", Data: []byte("b")},
 	}
-	infos, err := sandbox.Files.WriteFiles(nil, files, nil)
+	infos, err := sandbox.Files.WriteFiles(context.TODO(), files, nil)
 	if err != nil {
 		t.Fatalf("WriteFiles failed: %v", err)
 	}
@@ -400,7 +393,7 @@ func TestFilesystemList(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.5.7", handler)
 
-	entries, err := sandbox.Files.List(nil, "/tmp", &FilesystemListOpts{Depth: 2})
+	entries, err := sandbox.Files.List(context.TODO(), "/tmp", &FilesystemListOpts{Depth: 2})
 	if err != nil {
 		t.Fatalf("List failed: %v", err)
 	}
@@ -441,7 +434,7 @@ func TestFilesystemListDepthDefaultsToOne(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.5.7", handler)
 
-	if _, err := sandbox.Files.List(nil, "/tmp", &FilesystemListOpts{Depth: 0}); err != nil {
+	if _, err := sandbox.Files.List(context.TODO(), "/tmp", &FilesystemListOpts{Depth: 0}); err != nil {
 		t.Fatalf("depth 0 should default to 1, got error: %v", err)
 	}
 	if gotDepth != 1 {
@@ -453,7 +446,7 @@ func TestFilesystemListRejectsNegativeDepth(t *testing.T) {
 	handler := newRPCServer(t, map[string]func(w http.ResponseWriter, r *http.Request){})
 	sandbox := newTestSandbox(t, "0.5.7", handler)
 
-	_, err := sandbox.Files.List(nil, "/tmp", &FilesystemListOpts{Depth: -1})
+	_, err := sandbox.Files.List(context.TODO(), "/tmp", &FilesystemListOpts{Depth: -1})
 	if err == nil {
 		t.Fatal("expected an error for a negative depth")
 	}
@@ -475,7 +468,7 @@ func TestFilesystemMakeDirAlreadyExists(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.5.7", handler)
 
-	created, err := sandbox.Files.MakeDir(nil, "/tmp/existing", nil)
+	created, err := sandbox.Files.MakeDir(context.TODO(), "/tmp/existing", nil)
 	if err != nil {
 		t.Fatalf("MakeDir failed: %v", err)
 	}
@@ -499,7 +492,7 @@ func TestFilesystemMakeDirCreated(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.5.7", handler)
 
-	created, err := sandbox.Files.MakeDir(nil, "/tmp/new", nil)
+	created, err := sandbox.Files.MakeDir(context.TODO(), "/tmp/new", nil)
 	if err != nil {
 		t.Fatalf("MakeDir failed: %v", err)
 	}
@@ -527,7 +520,7 @@ func TestFilesystemExists(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.5.7", handler)
 
-	exists, err := sandbox.Files.Exists(nil, "/a", nil)
+	exists, err := sandbox.Files.Exists(context.TODO(), "/a", nil)
 	if err != nil {
 		t.Fatalf("Exists failed: %v", err)
 	}
@@ -535,7 +528,7 @@ func TestFilesystemExists(t *testing.T) {
 		t.Error("expected /a to exist")
 	}
 
-	exists, err = sandbox.Files.Exists(nil, "/missing", nil)
+	exists, err = sandbox.Files.Exists(context.TODO(), "/missing", nil)
 	if err != nil {
 		t.Fatalf("Exists failed: %v", err)
 	}
@@ -562,7 +555,7 @@ func TestFilesystemRename(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.5.7", handler)
 
-	info, err := sandbox.Files.Rename(nil, "/a.txt", "/b.txt", nil)
+	info, err := sandbox.Files.Rename(context.TODO(), "/a.txt", "/b.txt", nil)
 	if err != nil {
 		t.Fatalf("Rename failed: %v", err)
 	}
@@ -583,7 +576,7 @@ func TestFilesystemRemove(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.5.7", handler)
 
-	if err := sandbox.Files.Remove(nil, "/tmp/gone", nil); err != nil {
+	if err := sandbox.Files.Remove(context.TODO(), "/tmp/gone", nil); err != nil {
 		t.Fatalf("Remove failed: %v", err)
 	}
 	if !called {
@@ -602,7 +595,7 @@ func TestFilesystemRequestHeaders(t *testing.T) {
 
 	sandbox := newTestSandbox(t, "0.5.7", handler)
 
-	if _, err := sandbox.Files.Read(nil, "/tmp/x", nil); err != nil {
+	if _, err := sandbox.Files.Read(context.TODO(), "/tmp/x", nil); err != nil {
 		t.Fatalf("Read failed: %v", err)
 	}
 

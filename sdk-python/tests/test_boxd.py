@@ -64,7 +64,9 @@ class Handler(BaseHTTPRequestHandler):
             data = json.dumps(payload).encode("utf-8")
         extra = dict(headers or {})
         self.send_response(status)
-        if payload is not None and not isinstance(payload, bytes) and not any(name.lower() == "content-type" for name in extra):
+        if payload is not None and not isinstance(payload, bytes) and not any(
+            name.lower() == "content-type" for name in extra
+        ):
             self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))
         for name, value in extra.items():
@@ -224,7 +226,9 @@ class BoxdTest(unittest.TestCase):
             for line in request.split("\r\n"):
                 if line.lower().startswith("sec-websocket-key:"):
                     key = line.split(":", 1)[1].strip()
-            accept = base64.b64encode(hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode("ascii")).digest()).decode("ascii")
+            accept = base64.b64encode(
+                hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode("ascii")).digest()
+            ).decode("ascii")
             handshake = (
                 "HTTP/1.1 101 Switching Protocols\r\n"
                 "Upgrade: websocket\r\n"
@@ -283,7 +287,9 @@ class BoxdTest(unittest.TestCase):
             for line in request.split("\r\n"):
                 if line.lower().startswith("sec-websocket-key:"):
                     key = line.split(":", 1)[1].strip()
-            accept = base64.b64encode(hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode("ascii")).digest()).decode("ascii")
+            accept = base64.b64encode(
+                hashlib.sha1((key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11").encode("ascii")).digest()
+            ).decode("ascii")
             handshake = (
                 "HTTP/1.1 101 Switching Protocols\r\n"
                 "Upgrade: websocket\r\n"

@@ -543,9 +543,7 @@ func (g *Git) BranchesAt(ctx context.Context, path string, opts *GitRequestOpts)
 		isCurrent := strings.HasPrefix(line, "*")
 		name := strings.TrimSpace(strings.TrimPrefix(strings.TrimPrefix(line, "*"), " "))
 
-		if strings.HasPrefix(name, "remotes/") {
-			name = strings.TrimPrefix(name, "remotes/")
-		}
+		name = strings.TrimPrefix(name, "remotes/")
 
 		if strings.Contains(name, " -> ") {
 			// symbolic ref such as origin/HEAD -> origin/main

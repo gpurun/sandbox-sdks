@@ -257,17 +257,6 @@ func readEnvelope(r *bufio.Reader) ([]byte, error) {
 	return payload, nil
 }
 
-// streamCall opens a server-streaming Connect RPC and invokes onMessage for
-// each decoded message. Returning an error from onMessage stops the stream.
-func (c *rpcClient) streamCall(
-	ctx context.Context,
-	method string,
-	req interface{},
-	onMessage func(payload []byte) error,
-) error {
-	return c.streamService(ctx, filesystemService, method, req, onMessage)
-}
-
 // streamService opens a server-streaming Connect RPC against a named service.
 func (c *rpcClient) streamService(
 	ctx context.Context,
@@ -360,12 +349,4 @@ func (c *restClient) do(ctx context.Context, method, path string, query url.Valu
 	}
 
 	return c.http.Do(req)
-}
-
-// timeoutClient returns the shared HTTP client with a per-call timeout.
-func (c *restClient) withTimeout(d time.Duration) *http.Client {
-	if d <= 0 {
-		return c.http
-	}
-	return &http.Client{Timeout: d}
 }

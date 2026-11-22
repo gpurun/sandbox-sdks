@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -330,15 +329,4 @@ func cloneHeaders(headers map[string]string) map[string]string {
 		result[key] = value
 	}
 	return result
-}
-
-func asError(err error) *Error {
-	if err == nil {
-		return nil
-	}
-	var result *Error
-	if errors.As(err, &result) {
-		return result
-	}
-	return &Error{Status: 0, Code: "client_error", Message: err.Error(), Err: err}
 }

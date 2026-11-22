@@ -61,7 +61,9 @@ class Handler(BaseHTTPRequestHandler):
             data = json.dumps(payload).encode("utf-8")
         extra = dict(headers or {})
         self.send_response(status)
-        if payload is not None and not isinstance(payload, bytes) and not any(name.lower() == "content-type" for name in extra):
+        if payload is not None and not isinstance(payload, bytes) and not any(
+            name.lower() == "content-type" for name in extra
+        ):
             self.send_header("Content-Type", "application/json")
         self.send_header("Content-Length", str(len(data)))
         for name, value in extra.items():
@@ -145,7 +147,9 @@ class BoxApiTest(unittest.TestCase):
         self.assertEqual(raised.exception.status, 404)
         self.assertEqual(raised.exception.code, "sandbox_not_found")
         self.assertEqual(str(raised.exception), "missing sandbox")
-        self.server.routes[("GET", "/v1/scheduler/quotas")] = lambda body, handler: (500, b"boom", {"Content-Type": "text/plain"})
+        self.server.routes[("GET", "/v1/scheduler/quotas")] = (
+            lambda body, handler: (500, b"boom", {"Content-Type": "text/plain"})
+        )
         with self.assertRaises(BoxApiError) as raised:
             self.client.get_quotas()
         self.assertEqual(raised.exception.status, 500)
@@ -218,7 +222,11 @@ class BoxApiTest(unittest.TestCase):
             (lambda: self.client.delete_image("img1"), "DELETE", "/v1/images/img1"),
             (lambda: self.client.list_runtimes(), "GET", "/v1/runtimes"),
             (lambda: self.client.get_runtime("firecracker"), "GET", "/v1/runtimes/firecracker"),
-            (lambda: self.client.get_runtime_capabilities("firecracker"), "GET", "/v1/runtimes/firecracker/capabilities"),
+            (
+                lambda: self.client.get_runtime_capabilities("firecracker"),
+                "GET",
+                "/v1/runtimes/firecracker/capabilities",
+            ),
             (lambda: self.client.list_strategies(), "GET", "/v1/scheduler/strategies"),
             (lambda: self.client.set_strategy({}), "POST", "/v1/scheduler/strategies"),
             (lambda: self.client.get_strategy("s1"), "GET", "/v1/scheduler/strategies/s1"),

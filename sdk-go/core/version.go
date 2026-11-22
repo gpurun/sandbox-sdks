@@ -85,8 +85,3 @@ func authenticationHeader(envdVersion string, user string) map[string]string {
 	encoded := base64.StdEncoding.EncodeToString([]byte(user + ":"))
 	return map[string]string{"Authorization": "Basic " + encoded}
 }
-
-// toUsername maps the SDK's Username type to a string for headers and queries.
-func toUsername(u Username) string {
-	return u.Name
-}

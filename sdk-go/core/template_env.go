@@ -146,13 +146,6 @@ __novita_runtime_env() {
 	encoded := base64.StdEncoding.EncodeToString([]byte(strings.Join(lines, "\n")))
 	return "echo " + encoded + " | command -p base64 -d > " + envScriptPath + " && command -p sh " + envScriptPath + " && command -p rm -f " + envScriptPath
 }
-func runtimeEnvCommand(envs map[string]string) string {
-	groups := []envGroup{}
-	for _, key := range envKeys(envs) {
-		groups = append(groups, envGroup{Values: map[string]string{key: envs[key]}, Runtime: true})
-	}
-	return envFilesCommand(nil, groups)
-}
 func addRuntimeEnv(instructions []Instruction, literals map[string]string, groups []envGroup, force bool) []Instruction {
 	command := envFilesCommand(literals, groups)
 	if command == "" {
