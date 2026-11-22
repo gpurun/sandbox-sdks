@@ -8,11 +8,11 @@
   <properties>
     <maven.compiler.release>11</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <novita.version>2.1.2</novita.version>
+    <gpurun.version>2.1.2</gpurun.version>
   </properties>
   <dependencies>
     <dependency>
-      <groupId>ai.novita</groupId><artifactId>novita-sandbox</artifactId><version>${novita.version}</version>
+      <groupId>ai.gpurun</groupId><artifactId>gpurun-sandbox</artifactId><version>${gpurun.version}</version>
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId><artifactId>junit-jupiter</artifactId><version>5.10.1</version><scope>test</scope>
@@ -24,7 +24,7 @@
     </plugin>
     <plugin>
       <groupId>org.apache.maven.plugins</groupId><artifactId>maven-surefire-plugin</artifactId><version>3.2.2</version>
-      <configuration><systemPropertyVariables><novita.version>${novita.version}</novita.version></systemPropertyVariables></configuration>
+      <configuration><systemPropertyVariables><gpurun.version>${gpurun.version}</gpurun.version></systemPropertyVariables></configuration>
     </plugin>
   </plugins></build>
 </project>

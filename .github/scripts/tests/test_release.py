@@ -16,6 +16,10 @@ class ReleaseContract(unittest.TestCase):
             ("sdk-go/v0.0.1", "go", "0.0.1", "stable"),
             ("sdk-go/v1.0.0", "go", "1.0.0", "stable"),
             ("java-2.1.2-alpha1", "java", "2.1.2-alpha1", "alpha"),
+            ("npm-0.1.0", "npm", "0.1.0", "stable"),
+            ("npm-0.1.0-beta.1", "npm", "0.1.0-beta.1", "beta"),
+            ("pypi-0.1.0", "pypi", "0.1.0", "stable"),
+            ("pypi-0.1.0-rc1", "pypi", "0.1.0-rc1", "rc"),
         ]:
             with self.subTest(tag=tag):
                 r = self.invoke("describe", tag)
@@ -31,7 +35,7 @@ class ReleaseContract(unittest.TestCase):
                 self.assertIn("Unknown component tag prefix", result.stderr)
 
     def test_noncanonical_or_injected_tags_are_rejected(self):
-        for tag in ["ts-2.1.2a1", "sdk-go/v0.0.1a1", "sdk-go/v00.0.1", "sdk-go/v2.0.0", "ts-2.1.2-alpha.01", "v0.0.1", "java-2.1.2;echo bad", "py-2.1.2-alpha.1"]:
+        for tag in ["ts-2.1.2a1", "sdk-go/v0.0.1a1", "sdk-go/v00.0.1", "sdk-go/v2.0.0", "ts-2.1.2-alpha.01", "v0.0.1", "java-2.1.2;echo bad", "py-2.1.2-alpha.1", "npm-00.1.0", "pypi-0.1.0-alpha.01"]:
             with self.subTest(tag=tag):
                 r = self.invoke("describe", tag)
                 self.assertNotEqual(r.returncode, 0)
@@ -47,7 +51,7 @@ class ReleaseContract(unittest.TestCase):
             git("config", "user.name", "Release Test")
             git("config", "user.email", "test@example.com")
             (root / "sdk-go/core").mkdir(parents=True)
-            (root / "sdk-go/go.mod").write_text("module github.com/novitalabs/sandbox-sdks/sdk-go\n")
+            (root / "sdk-go/go.mod").write_text("module github.com/gpurun/gpurun-sandbox/sdk-go\n")
             manifest = root / "sdk-go/core/connection_config.go"
             manifest.write_text('const SDKVersion = "0.0.1"\n')
             git("add", "."); git("commit", "-qm", "stable")
@@ -61,6 +65,26 @@ class ReleaseContract(unittest.TestCase):
             git("checkout", "-q", "main")
             self.assertEqual(self.invoke("check", "sdk-go/v0.0.1", "--commit", main, cwd=root).returncode, 0)
 
+    def test_check_binds_npm_and_pypi_manifests(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            def git(*args):
+                r = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                return r.stdout.strip()
+            git("init", "-q", "-b", "main")
+            git("config", "user.name", "Release Test")
+            git("config", "user.email", "test@example.com")
+            (root / "sdk-ts").mkdir(parents=True)
+            (root / "sdk-python").mkdir(parents=True)
+            (root / "sdk-ts/package.json").write_text(json.dumps({"name": "gpurun-sandbox", "version": "0.1.0"}))
+            (root / "sdk-python/pyproject.toml").write_text('[build-system]\nrequires=["setuptools>=61"]\nbuild-backend="setuptools.build_meta"\n\n[project]\nname = "gpurun-sandbox"\nversion = "0.1.0"\n')
+            git("add", "."); git("commit", "-qm", "release")
+            self.assertEqual(self.invoke("check", "npm-0.1.0", cwd=root).returncode, 0)
+            self.assertEqual(self.invoke("check", "pypi-0.1.0", cwd=root).returncode, 0)
+            self.assertNotEqual(self.invoke("check", "npm-0.1.1", cwd=root).returncode, 0)
+            self.assertNotEqual(self.invoke("check", "pypi-0.1.1", cwd=root).returncode, 0)
+
     def test_release_gate_rejects_checkout_different_from_tag_target(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
@@ -73,7 +97,7 @@ class ReleaseContract(unittest.TestCase):
             git("config", "user.name", "Release Test")
             git("config", "user.email", "test@example.com")
             (root / "sdk-go/core").mkdir(parents=True)
-            (root / "sdk-go/go.mod").write_text("module github.com/novitalabs/sandbox-sdks/sdk-go\n")
+            (root / "sdk-go/go.mod").write_text("module github.com/gpurun/gpurun-sandbox/sdk-go\n")
             (root / "sdk-go/core/connection_config.go").write_text('const SDKVersion = "0.0.1"\n')
             git("add", ".")
             git("commit", "-qm", "tagged source")
@@ -101,8 +125,8 @@ class ArtifactContract(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
             for suffix in ("", "-sources", "-javadoc"):
-                with zipfile.ZipFile(root / ("novita-sandbox-2.1.2" + suffix + ".jar"), "w") as archive:
-                    archive.writestr("META-INF/maven/ai.novita/novita-sandbox/pom.properties", "groupId=ai.novita\nartifactId=novita-sandbox\nversion=9.9.9\n")
+                with zipfile.ZipFile(root / ("gpurun-sandbox-2.1.2" + suffix + ".jar"), "w") as archive:
+                    archive.writestr("META-INF/maven/ai.gpurun/gpurun-sandbox/pom.properties", "groupId=ai.gpurun\nartifactId=gpurun-sandbox\nversion=9.9.9\n")
             self.assertNotEqual(self.invoke("java-2.1.2", root).returncode, 0)
 
     def test_java_archives_require_embedded_license_text(self):
@@ -110,23 +134,51 @@ class ArtifactContract(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
             for suffix in ("", "-sources", "-javadoc"):
-                with zipfile.ZipFile(root / ("novita-sandbox-2.1.2" + suffix + ".jar"), "w") as archive:
-                    archive.writestr("META-INF/maven/ai.novita/novita-sandbox/pom.properties", "groupId=ai.novita\nartifactId=novita-sandbox\nversion=2.1.2\n")
+                with zipfile.ZipFile(root / ("gpurun-sandbox-2.1.2" + suffix + ".jar"), "w") as archive:
+                    archive.writestr("META-INF/maven/ai.gpurun/gpurun-sandbox/pom.properties", "groupId=ai.gpurun\nartifactId=gpurun-sandbox\nversion=2.1.2\n")
             self.assertNotEqual(self.invoke("java-2.1.2", root).returncode, 0)
             for suffix in ("", "-sources", "-javadoc"):
-                with zipfile.ZipFile(root / ("novita-sandbox-2.1.2" + suffix + ".jar"), "a") as archive:
-                    archive.writestr("doc-files/LICENSE" if suffix == "-javadoc" else "META-INF/LICENSE", "MIT License\nCopyright (c) 2025 Novita AI\nPermission is hereby granted, free of charge")
+                with zipfile.ZipFile(root / ("gpurun-sandbox-2.1.2" + suffix + ".jar"), "a") as archive:
+                    archive.writestr("doc-files/LICENSE" if suffix == "-javadoc" else "META-INF/LICENSE", "MIT License\nCopyright (c) 2025 Gpurun\nPermission is hereby granted, free of charge")
             self.assertEqual(self.invoke("java-2.1.2", root).returncode, 0)
 
     def test_go_source_must_match_module_path_and_version(self):
         import tarfile, io
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
-            with tarfile.open(root / "novita-sandbox-go-0.0.1.tar.gz", "w:gz") as archive:
+            with tarfile.open(root / "gpurun-sandbox-go-0.0.1.tar.gz", "w:gz") as archive:
                 data = b"module example.com/wrong\n"
                 entry = tarfile.TarInfo("./go.mod"); entry.size = len(data)
                 archive.addfile(entry, io.BytesIO(data))
             self.assertNotEqual(self.invoke("sdk-go/v0.0.1", root).returncode, 0)
+
+    def test_npm_and_pypi_artifacts_must_match_metadata(self):
+        import tarfile, io
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            with tarfile.open(root / "gpurun-sandbox-0.1.0.tgz", "w:gz") as archive:
+                data = b'{"name":"gpurun-sandbox","version":"9.9.9"}'
+                entry = tarfile.TarInfo("package/package.json"); entry.size = len(data)
+                archive.addfile(entry, io.BytesIO(data))
+            self.assertNotEqual(self.invoke("npm-0.1.0", root).returncode, 0)
+
+            with tarfile.open(root / "gpurun-sandbox-0.1.0.tgz", "w:gz") as archive:
+                data = b'{"name":"gpurun-sandbox","version":"0.1.0"}'
+                entry = tarfile.TarInfo("package/package.json"); entry.size = len(data)
+                archive.addfile(entry, io.BytesIO(data))
+            self.assertEqual(self.invoke("npm-0.1.0", root).returncode, 0)
+
+            with tarfile.open(root / "gpurun_sandbox-0.1.0.tar.gz", "w:gz") as archive:
+                data = b'[project]\nname="gpurun-sandbox"\nversion="9.9.9"\n'
+                entry = tarfile.TarInfo("gpurun_sandbox-0.1.0/pyproject.toml"); entry.size = len(data)
+                archive.addfile(entry, io.BytesIO(data))
+            self.assertNotEqual(self.invoke("pypi-0.1.0", root).returncode, 0)
+
+            with tarfile.open(root / "gpurun_sandbox-0.1.0.tar.gz", "w:gz") as archive:
+                data = b'[project]\nname="gpurun-sandbox"\nversion="0.1.0"\n'
+                entry = tarfile.TarInfo("gpurun_sandbox-0.1.0/pyproject.toml"); entry.size = len(data)
+                archive.addfile(entry, io.BytesIO(data))
+            self.assertEqual(self.invoke("pypi-0.1.0", root).returncode, 0)
 
     def test_hook_rejects_unpublished_commit_before_scanning(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -136,7 +188,7 @@ class ArtifactContract(unittest.TestCase):
             git("init", "-q", "-b", "main")
             git("config", "user.name", "Release Test"); git("config", "user.email", "test@example.com")
             (root / "sdk-go/core").mkdir(parents=True)
-            (root / "sdk-go/go.mod").write_text("module github.com/novitalabs/sandbox-sdks/sdk-go\n")
+            (root / "sdk-go/go.mod").write_text("module github.com/gpurun/gpurun-sandbox/sdk-go\n")
             (root / "sdk-go/core/connection_config.go").write_text('const SDKVersion = "0.0.1"\n')
             git("add", "."); git("commit", "-qm", "public")
             remote = root / "remote.git"; git("clone", "--bare", ".", str(remote)); git("remote", "add", "origin", str(remote))

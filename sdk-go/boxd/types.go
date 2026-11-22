@@ -1,0 +1,126 @@
+package boxd
+
+const DefaultBaseURL = "http://127.0.0.1:8082"
+
+const SandboxIDHeader = "Novita-Sandbox-Id"
+
+const ConnectContentType = "application/connect+json"
+
+type HealthStatus struct {
+	Status            string `json:"status"`
+	Service           string `json:"service,omitempty"`
+	StartedAtUnixNano int64  `json:"startedAtUnixNano,omitempty"`
+}
+
+type ExecResult struct {
+	ExitCode int    `json:"exitCode"`
+	Stdout   string `json:"stdout"`
+	Stderr   string `json:"stderr"`
+}
+
+type ProcessInfo struct {
+	PID  int      `json:"pid,omitempty"`
+	Tag  string   `json:"tag,omitempty"`
+	Cmd  []string `json:"cmd,omitempty"`
+	Args []string `json:"args,omitempty"`
+	Cwd  string   `json:"cwd,omitempty"`
+	Tty  bool     `json:"tty,omitempty"`
+	Rows int      `json:"rows,omitempty"`
+	Cols int      `json:"cols,omitempty"`
+}
+
+type StartProcessRequest struct {
+	Cmd  []string          `json:"cmd"`
+	Cwd  string            `json:"cwd,omitempty"`
+	Env  map[string]string `json:"env,omitempty"`
+	Tty  bool              `json:"tty,omitempty"`
+	Rows int               `json:"rows,omitempty"`
+	Cols int               `json:"cols,omitempty"`
+	Tag  string            `json:"tag,omitempty"`
+}
+
+type ProcessExit struct {
+	ExitCode int    `json:"exitCode"`
+	Exited   bool   `json:"exited"`
+	Status   string `json:"status"`
+	Error    string `json:"error,omitempty"`
+}
+
+type ProcessStreamConfig struct {
+	Cmd  string            `json:"cmd"`
+	Args []string          `json:"args,omitempty"`
+	Envs map[string]string `json:"envs,omitempty"`
+	Cwd  string            `json:"cwd,omitempty"`
+}
+
+type ProcessSize struct {
+	Cols int `json:"cols,omitempty"`
+	Rows int `json:"rows,omitempty"`
+}
+
+type ProcessSelector struct {
+	PID int    `json:"pid,omitempty"`
+	Tag string `json:"tag,omitempty"`
+}
+
+type ConnectProcessEntry struct {
+	Config ProcessStreamConfig `json:"config"`
+	PID    int                 `json:"pid"`
+	Tag    string              `json:"tag,omitempty"`
+}
+
+type StartProcessStreamRequest struct {
+	Process ProcessStreamConfig `json:"process"`
+	Pty     *ProcessPTY         `json:"pty,omitempty"`
+	Tag     string              `json:"tag,omitempty"`
+	Stdin   bool                `json:"stdin,omitempty"`
+}
+
+type ConnectProcessStreamRequest struct {
+	Process ProcessSelector `json:"process"`
+}
+
+type ProcessPTY struct {
+	Size *ProcessSize `json:"size,omitempty"`
+}
+
+type UpdateProcessRequest struct {
+	Process ProcessSelector `json:"process"`
+	Pty     *ProcessPTY     `json:"pty,omitempty"`
+}
+
+type SendInputRequest struct {
+	Process ProcessSelector  `json:"process"`
+	Input   SendInputPayload `json:"input"`
+}
+
+type SendInputPayload struct {
+	Stdin string `json:"stdin,omitempty"`
+	Pty   string `json:"pty,omitempty"`
+}
+
+type SendSignalRequest struct {
+	Process ProcessSelector `json:"process"`
+	Signal  int             `json:"signal"`
+}
+
+type ProcessStartEvent struct {
+	PID int `json:"pid"`
+}
+
+type ProcessDataEvent struct {
+	Stdout string `json:"stdout,omitempty"`
+	Stderr string `json:"stderr,omitempty"`
+	Pty    string `json:"pty,omitempty"`
+}
+
+type ProcessEventBody struct {
+	Start     *ProcessStartEvent `json:"start,omitempty"`
+	Data      *ProcessDataEvent  `json:"data,omitempty"`
+	Keepalive map[string]any     `json:"keepalive,omitempty"`
+	End       *ProcessExit       `json:"end,omitempty"`
+}
+
+type ProcessEvent struct {
+	Event ProcessEventBody `json:"event"`
+}

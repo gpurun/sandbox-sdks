@@ -18,7 +18,7 @@ published = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(published)
 
 class PublishedGoModule(unittest.TestCase):
-    module = 'github.com/novitalabs/sandbox-sdks/sdk-go'
+    module = 'github.com/gpurun/gpurun-sandbox/sdk-go'
     version = 'v0.0.1-alpha.1'
     token = 'fixture-private-go-token'
 
@@ -37,7 +37,7 @@ class PublishedGoModule(unittest.TestCase):
         self.assertTrue(kwargs['capture_output'], 'tool output must not leak credentials')
         self.assertTrue(kwargs['text'])
         self.calls.append((args, kwargs))
-        directory = cache / 'github.com/novitalabs/sandbox-sdks/sdk-go@v0.0.1-alpha.1'
+        directory = cache / 'github.com/gpurun/gpurun-sandbox/sdk-go@v0.0.1-alpha.1'
         (directory / 'core').mkdir(parents=True)
         (directory / 'core/connection_config.go').write_text('package core\nconst SDKVersion = "0.0.1-alpha.1"\n')
         data = {'Path': self.module, 'Version': self.version, 'Dir': str(directory),
@@ -83,12 +83,12 @@ class PublishedGoModule(unittest.TestCase):
         self.assertNotEqual(caches[0], caches[1])
 
     def test_private_download_uses_repository_scoped_bypass_and_ephemeral_auth(self):
-        output = self.run_main({'REPOSITORY_PRIVATE': 'true', 'GITHUB_REPOSITORY': 'novitalabs/sandbox-sdks',
+        output = self.run_main({'REPOSITORY_PRIVATE': 'true', 'GITHUB_REPOSITORY': 'gpurun/gpurun-sandbox',
                                 'GH_TOKEN': self.token, 'GOPRIVATE': '*', 'GOSUMDB': 'off'})
         args, kwargs = self.calls[0]
         child = kwargs['env']
         for key in ('GOPRIVATE', 'GONOPROXY', 'GONOSUMDB'):
-            self.assertEqual(child[key], 'github.com/novitalabs/sandbox-sdks')
+            self.assertEqual(child[key], 'github.com/gpurun/gpurun-sandbox')
         self.assertEqual(child['GOPROXY'], 'https://proxy.golang.org,direct')
         self.assertEqual(child['GOSUMDB'], 'sum.golang.org')
         self.assertEqual(child['GH_TOKEN'], self.token)
@@ -100,7 +100,7 @@ class PublishedGoModule(unittest.TestCase):
         self.assertNotIn(self.token, str(args) + str(config) + output)
 
     def test_private_download_requires_token_and_matching_repository(self):
-        for env in ({'REPOSITORY_PRIVATE': 'true', 'GITHUB_REPOSITORY': 'novitalabs/sandbox-sdks'},
+        for env in ({'REPOSITORY_PRIVATE': 'true', 'GITHUB_REPOSITORY': 'gpurun/gpurun-sandbox'},
                     {'REPOSITORY_PRIVATE': 'true', 'GITHUB_REPOSITORY': 'someone/another', 'GH_TOKEN': self.token}):
             with self.subTest(env=env), self.assertRaises(ValueError):
                 self.run_main(env)
@@ -118,7 +118,7 @@ class PublishedGoModule(unittest.TestCase):
             return subprocess.CompletedProcess(args, 1, self.token, 'authentication failed: ' + self.token)
         output = io.StringIO()
         with redirect_stdout(output), self.assertRaises(ValueError) as error:
-            self.run_main({'REPOSITORY_PRIVATE': 'true', 'GITHUB_REPOSITORY': 'novitalabs/sandbox-sdks',
+            self.run_main({'REPOSITORY_PRIVATE': 'true', 'GITHUB_REPOSITORY': 'gpurun/gpurun-sandbox',
                            'GH_TOKEN': self.token}, denied, output)
         self.assertNotIn(self.token, str(error.exception) + output.getvalue())
         self.assertNotIn('Verified', output.getvalue())

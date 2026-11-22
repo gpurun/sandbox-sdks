@@ -9,7 +9,9 @@ The runtime service names are `process.Process` and `filesystem.Filesystem`.
 
 | Area | Java surface | Wire contract | Lifecycle/error coverage |
 | --- | --- | --- | --- |
-| Root facade | `Novita.createSandbox`, `connectSandbox`, `listSandboxes`, `template()`, `volume()`, `secret()`, `job()`; separate `CodeInterpreterSandbox` / `DesktopSandbox` entry points | Shared control-plane options and module clients | Facade configuration is inherited; module wrappers expose public create/connect methods |
+| Root facade | `Gpurun.createSandbox`, `connectSandbox`, `listSandboxes`, `template()`, `volume()`, `secret()`, `job()`, `box`, `data`; deprecated `Novita` subclass; separate `CodeInterpreterSandbox` / `DesktopSandbox` entry points | Shared control-plane options and module clients | Facade configuration is inherited; module wrappers expose public create/connect methods |
+| BoxAPI control plane | `BoxApiClient` sandbox, balloon, template, image, runtime and scheduler methods; `BoxApiModels` request/response types | `/health`, `/sandboxes`, `/v1/sandboxes`, `/v2/templates`, `/v3/templates`, `/v1/images`, `/v1/runtimes`, `/v1/scheduler/*` | Bearer auth, bare JSON success, `BoxApiException` with status/code, 202/201/204 handling, repeated `state` and `X-Next-Token` pagination, PascalCase `/v1/scheduler/decide` body |
+| boxd data plane | `BoxdClient` health, exec, processes, WebSocket `ProcessSocket`, Connect `ProcessStream` and unary Connect methods | `/exec`, `/processes`, `/processes/{id}/{wait,resize,signal,connect}`, `/process.Process/{List,Start,Connect,Update,SendInput,SendSignal}` | `Novita-Sandbox-Id` header plus `sandboxID` query, 200/422 exec bodies, 5-byte frames with flags `0`/`2`, base64 data, keepalive tolerated, awaitEnd deadline |
 | Sandbox control plane | `create`, `connect/get`, `list`, `kill`, `pause`, `clone`, `reset`, `commit`, `setNetwork`, `setTimeout`, `info`, `metrics`, `quota`, `events`, `resize`, snapshot APIs | `/sandboxes`, `/sandboxes/{id}`, action endpoints, `/snapshots`, legacy domain rules | Encoded IDs/query; array and envelope pagination; 401/404/429 typed errors; list must not create per-item clients |
 | Migration jobs | `job()`/`Job.create`, migrate/distribute/get/list/cancel/wait and async variants | `/v1/migrations`, `/v1/migrations/cancel`; snake_case requests, camelCase status/page responses | Alias rules, duplicate IDs, reason-specific errors, reverting and per-item results, request/callback/poll deadlines, HTTP cancellation, no automatic accept replay |
 | Sandbox URLs | `portUrl`, upload/download URL helpers, MCP URL/token | `<port>-<sandboxId>.<domain>` plus traffic/access headers and signatures | New and legacy domains; cached runtime metadata invalidated by reset |
@@ -28,6 +30,11 @@ The runtime service names are `process.Process` and `filesystem.Filesystem`.
 | Connect transport | unary, server stream, cancellable stream | Connect JSON; 5-byte envelopes; end-stream trailer flag `0x02` | Data, empty trailer, error trailer, compressed flag rejection, invalid length, truncated frame, EOF and cancellation |
 
 ## Required fixture assertions
+
+- BoxAPI `decide` sends only PascalCase keys, including nested requirements,
+  and `listSandboxesV2` prefers `X-Next-Token` over the response body.
+- boxd Connect frames decode the big-endian 5-byte header, deliver base64 data
+  as events, ignore keepalives and complete on the flags `2` end frame.
 
 - A sandbox list response may be a bare array or an object envelope and never
   constructs an envd client for each entry.

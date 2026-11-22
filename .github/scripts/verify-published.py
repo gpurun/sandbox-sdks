@@ -19,22 +19,38 @@ spec.loader.exec_module(release)
 
 
 def verify(info, assets):
-    component, version = info["component"], info["version"]
+    component, version, package = info["component"], info["version"], info["package"]
     headers = {"User-Agent": "sandbox-sdk-release-check"}
     def read(url):
         with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as response:
             return response.read()
-    base = "https://repo.maven.apache.org/maven2"
-    files = [assets / f"novita-sandbox-{version}{suffix}{signature}"
-             for suffix in (".jar", "-sources.jar", "-javadoc.jar", ".pom")
-             for signature in ("", ".asc")]
-    for file in files:
-        if not file.is_file():
-            raise ValueError("Missing signed Java release artifact: " + file.name)
-    for file in files:
-        published = read(base + f"/ai/novita/novita-sandbox/{version}/" + file.name)
-        if hashlib.sha256(published).digest() != hashlib.sha256(file.read_bytes()).digest():
-            raise ValueError("Maven artifact differs from the validated build")
+    if component == "java":
+        base = "https://repo.maven.apache.org/maven2"
+        files = [assets / f"gpurun-sandbox-{version}{suffix}{signature}"
+                 for suffix in (".jar", "-sources.jar", "-javadoc.jar", ".pom")
+                 for signature in ("", ".asc")]
+        for file in files:
+            if not file.is_file():
+                raise ValueError("Missing signed Java release artifact: " + file.name)
+        for file in files:
+            published = read(base + f"/ai/gpurun/gpurun-sandbox/{version}/" + file.name)
+            if hashlib.sha256(published).digest() != hashlib.sha256(file.read_bytes()).digest():
+                raise ValueError("Maven artifact differs from the validated build")
+        return
+    if component == "npm":
+        data = json.loads(read(f"https://registry.npmjs.org/{package}/{version}"))
+        if data.get("name") != package or data.get("version") != version:
+            raise ValueError("npm registry metadata differs from tag")
+        print(f"Verified npm package {package} {version} on registry.npmjs.org")
+        return
+    if component == "pypi":
+        data = json.loads(read(f"https://pypi.org/pypi/{package}/{version}/json"))
+        info_data = data.get("info", {})
+        if info_data.get("name") != package or info_data.get("version") != version:
+            raise ValueError("PyPI registry metadata differs from tag")
+        print(f"Verified PyPI package {package} {version} on pypi.org")
+        return
+    raise ValueError(f"Unsupported component for registry verification: {component}")
 
 
 def verify_go(info):

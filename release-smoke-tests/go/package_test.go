@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	novita "github.com/novitalabs/sandbox-sdks/sdk-go"
-	interpreter "github.com/novitalabs/sandbox-sdks/sdk-go/code_interpreter"
-	"github.com/novitalabs/sandbox-sdks/sdk-go/core"
+	gpurun "github.com/gpurun/gpurun-sandbox/sdk-go"
+	interpreter "github.com/gpurun/gpurun-sandbox/sdk-go/code_interpreter"
+	"github.com/gpurun/gpurun-sandbox/sdk-go/core"
 )
 
 // These tests consume the SDK's public facade from a separate module, like a customer.
@@ -105,7 +105,7 @@ func cleanupSandbox(t *testing.T, sandbox *core.Sandbox) {
 }
 
 func TestPackageVersion(t *testing.T) {
-	if expected := os.Getenv("NOVITA_EXPECTED_VERSION"); expected != "" && core.SDKVersion != expected {
+	if expected := os.Getenv("GPURUN_EXPECTED_VERSION"); expected != "" && core.SDKVersion != expected {
 		t.Fatalf("imported version %s, expected %s", core.SDKVersion, expected)
 	}
 }
@@ -113,7 +113,7 @@ func TestPackageVersion(t *testing.T) {
 func TestConsumerLifecycleFilesAndCommands(t *testing.T) {
 	opts := fixture(t)
 	ctx := context.Background()
-	client, err := novita.New(opts)
+	client, err := gpurun.New(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -150,7 +150,7 @@ func TestConsumerLifecycleFilesAndCommands(t *testing.T) {
 func TestConsumerCannotMistakeCommandFailureForSuccess(t *testing.T) {
 	opts := fixture(t)
 	ctx := context.Background()
-	client, err := novita.New(opts)
+	client, err := gpurun.New(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +175,7 @@ func TestConsumerCannotMistakeCommandFailureForSuccess(t *testing.T) {
 func TestConsumerInterpreterOutputAndReconnect(t *testing.T) {
 	opts := fixture(t)
 	ctx := context.Background()
-	client, err := novita.New(opts)
+	client, err := gpurun.New(opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +208,7 @@ func TestConsumerInterpreterOutputAndReconnect(t *testing.T) {
 
 func TestConsumerDesktopEntrypoint(t *testing.T) {
 	opts := fixture(t)
-	client, err := novita.New(opts)
+	client, err := gpurun.New(opts)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -22,8 +22,8 @@ class JavaRegistry(unittest.TestCase):
         for tag in self.tags:
             with self.subTest(tag=tag):
                 info = release.describe(tag)
-                expected = ("https://repo.maven.apache.org/maven2/ai/novita/novita-sandbox/"
-                            + info["version"] + "/novita-sandbox-" + info["version"] + ".pom")
+                expected = ("https://repo.maven.apache.org/maven2/ai/gpurun/gpurun-sandbox/"
+                            + info["version"] + "/gpurun-sandbox-" + info["version"] + ".pom")
                 def existing(request, **kwargs):
                     self.assertEqual(request.full_url, expected)
                     self.assertIsNone(request.get_header("Authorization"))
@@ -53,7 +53,7 @@ class JavaRegistry(unittest.TestCase):
         files = {}
         for suffix in (".jar", "-sources.jar", "-javadoc.jar", ".pom"):
             for signature in ("", ".asc"):
-                name = "novita-sandbox-" + version + suffix + signature
+                name = "gpurun-sandbox-" + version + suffix + signature
                 data = ("fixture bytes for " + name).encode()
                 (root / name).write_bytes(data)
                 files[name] = data
@@ -66,7 +66,7 @@ class JavaRegistry(unittest.TestCase):
                 root = pathlib.Path(tmp)
                 files = self.artifacts(root, info["version"])
                 seen = set()
-                prefix = ("https://repo.maven.apache.org/maven2/ai/novita/novita-sandbox/"
+                prefix = ("https://repo.maven.apache.org/maven2/ai/gpurun/gpurun-sandbox/"
                           + info["version"] + "/")
                 def read(request, **kwargs):
                     self.assertTrue(request.full_url.startswith(prefix))

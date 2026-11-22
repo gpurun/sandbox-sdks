@@ -26,7 +26,7 @@ class HygieneContract(unittest.TestCase):
 
     def test_public_placeholders_are_allowed(self):
         with tempfile.TemporaryDirectory() as tmp:
-            pathlib.Path(tmp,"example.txt").write_text('NOVITA_API_KEY="your-api-key"\nhttps://example.com\n')
+            pathlib.Path(tmp,"example.txt").write_text('GPURUN_API_KEY="your-api-key"\nhttps://example.com\n')
             r=subprocess.run(["python3",str(SCRIPT),tmp],capture_output=True,text=True)
             self.assertEqual(r.returncode,0,r.stdout)
 

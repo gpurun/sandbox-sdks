@@ -1,7 +1,7 @@
 package example.customer;
 
-import ai.novita.sandbox.core.*;
-import ai.novita.sandbox.code_interpreter.*;
+import ai.gpurun.sandbox.core.*;
+import ai.gpurun.sandbox.code_interpreter.*;
 import com.google.gson.JsonParser;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
@@ -138,8 +138,8 @@ class PackageConsumerTest {
                 assertTrue(text.contains("MIT License") && text.contains("Copyright") && text.contains("Permission is hereby granted"));
             }
             Properties props = new Properties();
-            try (InputStream input = jar.getInputStream(jar.getJarEntry("META-INF/maven/ai.novita/novita-sandbox/pom.properties"))) { props.load(input); }
-            assertEquals(System.getProperty("novita.version"), props.getProperty("version"));
+            try (InputStream input = jar.getInputStream(jar.getJarEntry("META-INF/maven/ai.gpurun/gpurun-sandbox/pom.properties"))) { props.load(input); }
+            assertEquals(System.getProperty("gpurun.version"), props.getProperty("version"));
             System.out.println("SDK package origin: " + origin);
         }
     }
@@ -204,8 +204,8 @@ class PackageConsumerTest {
 
     @Test void desktopConnectIsAvailableFromTheJar() throws Exception {
         // Compatibility coverage for the lower-level static entry point.
-        try (ai.novita.sandbox.desktop.DesktopSandbox desktop =
-                 ai.novita.sandbox.desktop.DesktopSandbox.connect("consumer-sandbox", options)) {
+        try (ai.gpurun.sandbox.desktop.DesktopSandbox desktop =
+                 ai.gpurun.sandbox.desktop.DesktopSandbox.connect("consumer-sandbox", options)) {
             assertEquals("consumer-sandbox", desktop.getSandbox().getId());
         }
     }

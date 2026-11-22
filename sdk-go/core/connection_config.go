@@ -25,6 +25,9 @@ const (
 	// DefaultNovitaDomain is the default sandbox domain.
 	DefaultNovitaDomain = "us-phx-1.sandbox.novita.ai"
 
+	DefaultBoxAPIURL  = "http://127.0.0.1:8080"
+	DefaultBoxDataURL = "http://127.0.0.1:8082"
+
 	// SDKName is reported to the API for telemetry/version gating.
 	SDKName = "sdk_go"
 	// SDKVersion is the version of this Go SDK.
@@ -82,7 +85,7 @@ type Logger interface {
 
 // isLegacyDomain reports whether the domain predates modern sandbox features.
 func isLegacyDomain(domain string) bool {
-	switch strings.ToLower(getEnvVar("NOVITA_IS_LEGACY")) {
+	switch strings.ToLower(envFirst("GPURUN_IS_LEGACY", "NOVITA_IS_LEGACY")) {
 	case "true":
 		return true
 	case "false":
@@ -97,6 +100,15 @@ func getEnvVar(key string) string {
 	return strings.TrimSpace(os.Getenv(key))
 }
 
+func envFirst(keys ...string) string {
+	for _, key := range keys {
+		if value := getEnvVar(key); value != "" {
+			return value
+		}
+	}
+	return ""
+}
+
 // NewConnectionConfig builds a ConnectionConfig from explicit options, falling
 // back to the same environment variables the other SDKs use.
 func NewConnectionConfig(opts *SandboxOpts) (*ConnectionConfig, error) {
@@ -105,23 +117,23 @@ func NewConnectionConfig(opts *SandboxOpts) (*ConnectionConfig, error) {
 	}
 
 	cfg := &ConnectionConfig{
-		APIKey:      firstNonEmpty(opts.APIKey, getEnvVar("NOVITA_API_KEY")),
-		AccessToken: firstNonEmpty(opts.AccessToken, getEnvVar("NOVITA_ACCESS_TOKEN")),
-		Domain:      firstNonEmpty(opts.Domain, getEnvVar("NOVITA_DOMAIN"), DefaultNovitaDomain),
+		APIKey:      firstNonEmpty(opts.APIKey, envFirst("GPURUN_API_KEY", "NOVITA_API_KEY")),
+		AccessToken: firstNonEmpty(opts.AccessToken, envFirst("GPURUN_ACCESS_TOKEN", "NOVITA_ACCESS_TOKEN")),
+		Domain:      firstNonEmpty(opts.Domain, envFirst("GPURUN_DOMAIN", "NOVITA_DOMAIN"), DefaultNovitaDomain),
 	}
 
 	if cfg.Domain == "" {
 		return nil, &InvalidArgumentError{Argument: "domain", Reason: "domain cannot be empty"}
 	}
 
-	cfg.APIURL = firstNonEmpty(opts.APIURL, getEnvVar("NOVITA_API_URL"))
-	cfg.SandboxURL = firstNonEmpty(opts.SandboxURL, getEnvVar("NOVITA_SANDBOX_URL"))
+	cfg.APIURL = firstNonEmpty(opts.APIURL, envFirst("GPURUN_BASE_URL", "NOVITA_BASE_URL"), getEnvVar("NOVITA_API_URL"))
+	cfg.SandboxURL = firstNonEmpty(opts.SandboxURL, envFirst("GPURUN_DATA_URL", "NOVITA_DATA_URL"), getEnvVar("NOVITA_SANDBOX_URL"))
 	cfg.Logger = opts.Logger
 
 	if opts.Debug != nil {
 		cfg.Debug = *opts.Debug
 	} else {
-		cfg.Debug = strings.EqualFold(getEnvVar("NOVITA_DEBUG"), "true")
+		cfg.Debug = strings.EqualFold(envFirst("GPURUN_DEBUG", "NOVITA_DEBUG"), "true")
 	}
 
 	cfg.IsLegacyDomain = isLegacyDomain(cfg.Domain)
@@ -131,7 +143,7 @@ func NewConnectionConfig(opts *SandboxOpts) (*ConnectionConfig, error) {
 	case opts.RequestTimeoutMs != nil:
 		cfg.RequestTimeoutMs = *opts.RequestTimeoutMs
 	default:
-		envTimeout := getEnvVar("NOVITA_REQUEST_TIMEOUT")
+		envTimeout := envFirst("GPURUN_REQUEST_TIMEOUT", "NOVITA_REQUEST_TIMEOUT")
 		if envTimeout != "" {
 			if v, err := strconv.Atoi(envTimeout); err == nil {
 				cfg.RequestTimeoutMs = v * 1000

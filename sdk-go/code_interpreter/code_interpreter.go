@@ -1,11 +1,11 @@
 // Package code_interpreter runs code inside a Novita Agent Sandbox through the
 // Jupyter server exposed by the sandbox on port 49999.
 //
-// Use the root novita package as the default entrypoint. The returned Sandbox
+// Use the root gpurun package as the default entrypoint. The returned Sandbox
 // embeds the core sandbox so that lifecycle, filesystem and command APIs stay
-// available. Import novita from github.com/novitalabs/sandbox-sdks/sdk-go:
+// available. Import gpurun from github.com/gpurun/gpurun-sandbox/sdk-go:
 //
-//	client, err := novita.New(nil)
+//	client, err := gpurun.New(nil)
 //	if err != nil {
 //		return err
 //	}

@@ -1,7 +1,8 @@
-# Novita Sandbox Go SDK
+# Gpurun Sandbox Go SDK
 
-Go SDK for [Novita Agent Sandbox](https://novita.ai/sandbox) — isolated cloud sandboxes for
-running untrusted or AI-generated code, executing notebooks, and driving desktop environments.
+Go SDK for Gpurun Sandbox — isolated cloud sandboxes for running untrusted or
+AI-generated code, executing notebooks, and driving desktop environments.
+The existing Novita Sandbox API remains available for compatibility.
 
 ## Cluster compatibility
 
@@ -10,19 +11,19 @@ The SDK automatically uses legacy behavior for `sandbox.novita.ai` and
 Every other domain uses modern behavior by default. No additional cluster
 domains are built into the SDK.
 
-Set `NOVITA_IS_LEGACY=true` to force legacy behavior, or
-`NOVITA_IS_LEGACY=false` to force modern behavior. The override applies to SDK
-connections in the process; set it before starting the application. Values are
-case-insensitive and surrounding whitespace is ignored. Unset, empty, or other
-values use automatic domain detection.
+Set `GPURUN_IS_LEGACY=true` (or `NOVITA_IS_LEGACY=true`) to force legacy
+behavior, or set it to `false` to force modern behavior. The override applies
+to SDK connections in the process; set it before starting the application.
+Values are case-insensitive and surrounding whitespace is ignored. Unset,
+empty, or other values use automatic domain detection.
 
 This flag changes compatibility behavior and default request timeouts; it does
 not change the connection address or an explicitly configured request timeout.
-Set `NOVITA_DOMAIN` (or the domain option) separately, for example:
+Set `GPURUN_DOMAIN` (or `NOVITA_DOMAIN`, or the domain option) separately, for example:
 
 ```sh
-export NOVITA_DOMAIN=custom.example.invalid
-export NOVITA_IS_LEGACY=true
+export GPURUN_DOMAIN=custom.example.invalid
+export GPURUN_IS_LEGACY=true
 ```
 
 ## Installation
@@ -30,21 +31,23 @@ export NOVITA_IS_LEGACY=true
 Use a Go toolchain that satisfies the requirement in [go.mod](go.mod).
 
 The SDK lives in the `sdk-go` directory of the
-[sandbox-sdks](https://github.com/novitalabs/sandbox-sdks) repository. Install it with:
+[sandbox-sdks](https://github.com/gpurun/gpurun-sandbox) repository. Install it with:
 
 ```bash
-go get github.com/novitalabs/sandbox-sdks/sdk-go
+go get github.com/gpurun/gpurun-sandbox/sdk-go
 ```
 
 ## Quick start
 
-Get an API key from [key management](https://novita.ai/settings/key-management) and export it as
-`NOVITA_API_KEY`. An access token through `AccessToken` or `NOVITA_ACCESS_TOKEN` is also supported.
+Export your API key as `GPURUN_API_KEY` (or `NOVITA_API_KEY`). An access token
+through `AccessToken`, `GPURUN_ACCESS_TOKEN` or `NOVITA_ACCESS_TOKEN` is also supported.
+`GPURUN_BASE_URL` and `GPURUN_DATA_URL` override the boxapi and boxproxy addresses;
+they default to `http://localhost:8080` and `http://localhost:8082`.
 
-Use the root `novita` facade as the default entrypoint. Configure credentials and
+Use the root `gpurun` facade as the default entrypoint. Configure credentials and
 service addresses on the client; set the template and lifetime on each sandbox
 creation call. Public options and callback types are imported from `core`,
-`code_interpreter` or `desktop` as needed.
+`boxapi`, `boxd`, `code_interpreter` or `desktop` as needed.
 
 ```go
 package main
@@ -54,14 +57,14 @@ import (
 	"fmt"
 	"log"
 
-	novita "github.com/novitalabs/sandbox-sdks/sdk-go"
-	"github.com/novitalabs/sandbox-sdks/sdk-go/core"
+	gpurun "github.com/gpurun/gpurun-sandbox/sdk-go"
+	"github.com/gpurun/gpurun-sandbox/sdk-go/core"
 )
 
 func main() {
 	ctx := context.Background()
 
-	client, err := novita.New(&core.SandboxOpts{})
+	client, err := gpurun.New(&core.SandboxOpts{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -95,11 +98,36 @@ func main() {
 }
 ```
 
+`Box` exposes the NovitaBox control plane and `Data` exposes the boxproxy data
+plane. Both inherit credentials from `GPURUN_*` (falling back to `NOVITA_*`) and
+accept per-client overrides through `core.SandboxOpts` or the `boxapi` / `boxd`
+options:
+
+```go
+created, err := client.Box.CreateSandbox(boxapi.CreateSandboxRequest{
+	Rootfs: &boxapi.RootfsSource{Provider: "overlaybd", Image: "ubuntu:latest"},
+	RuntimeType: "gvisor",
+	GPU: 1,
+})
+if err != nil {
+	log.Fatal(err)
+}
+
+result, err := client.Data.Exec([]string{"echo", "hello"}, nil)
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Println(result.Stdout)
+```
+
+The previous `novita` package name and `Novita` type remain as compatibility
+aliases.
+
 Code Interpreter uses the same client configuration and returns a sandbox with
 `RunCode`. For example, with the imports shown above:
 
 ```go
-func runCode(ctx context.Context, client *novita.Novita) error {
+func runCode(ctx context.Context, client *gpurun.Gpurun) error {
 	sandbox, err := client.CodeInterpreter.Create(ctx, &core.SandboxOpts{
 		Template: "code-interpreter-v1",
 		Timeout:  300,
@@ -130,7 +158,7 @@ For streaming output, pass `code_interpreter.RunCodeOpts` with `OnStdout` and
 types; sandbox creation and connection still go through the facade.
 
 Desktop creation can configure its display without exposing untyped maps
-(import `github.com/novitalabs/sandbox-sdks/sdk-go/desktop`):
+(import `github.com/gpurun/gpurun-sandbox/sdk-go/desktop`):
 
 ```go
 desktopSandbox, err := client.Desktop.CreateWithOptions(ctx, desktop.CreateOptions{
@@ -370,7 +398,7 @@ and request timeout. Lower-level entry points are `core.NewJob(opts)` and
 `client.Client.Jobs()`.
 
 ```go
-client, err := novita.New(&core.SandboxOpts{Domain: "us-phx-1.sandbox.novita.ai"})
+	client, err := gpurun.New(&core.SandboxOpts{Domain: "us-phx-1.sandbox.novita.ai"})
 if err != nil {
     return err
 }

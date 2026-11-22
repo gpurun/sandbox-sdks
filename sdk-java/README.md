@@ -1,6 +1,6 @@
-# Novita Sandbox Java SDK
+# Gpurun Sandbox Java SDK
 
-Java SDK for [Novita Agent Sandbox](https://novita.ai/sandbox) — isolated cloud sandboxes for running untrusted or AI-generated code, executing notebooks, and driving desktop environments.
+Java SDK for [Gpurun Sandbox](https://novita.ai/sandbox) — isolated cloud sandboxes for running untrusted or AI-generated code, executing notebooks, and driving desktop environments.
 
 ## Cluster compatibility
 
@@ -26,14 +26,14 @@ export NOVITA_IS_LEGACY=true
 
 ## Installation
 
-Choose a published release from [Maven Central](https://central.sonatype.com/artifact/ai.novita/novita-sandbox)
+Choose a published release from [Maven Central](https://central.sonatype.com/artifact/ai.gpurun/gpurun-sandbox)
 and replace `RELEASE_VERSION` in the examples below. For Maven, add the dependency
 to your `pom.xml`:
 
 ```xml
 <dependency>
-    <groupId>ai.novita</groupId>
-    <artifactId>novita-sandbox</artifactId>
+    <groupId>ai.gpurun</groupId>
+    <artifactId>gpurun-sandbox</artifactId>
     <version>RELEASE_VERSION</version>
 </dependency>
 ```
@@ -41,29 +41,29 @@ to your `pom.xml`:
 Or for Gradle:
 
 ```gradle
-implementation 'ai.novita:novita-sandbox:RELEASE_VERSION'
+implementation 'ai.gpurun:gpurun-sandbox:RELEASE_VERSION'
 ```
 
 Stable and prerelease versions use Maven Central. See [prerelease installation](../RELEASING.md#installing-a-java-prerelease) for the alpha dependency; no registry credentials are required.
 
 ## Quick Start
 
-Get an API key from [key management](https://novita.ai/settings/key-management) and set it as an environment variable `NOVITA_API_KEY`.
+Get an API key from [key management](https://novita.ai/settings/key-management) and set it as an environment variable. `GPURUN_API_KEY` and `GPURUN_ACCESS_TOKEN` take precedence over `NOVITA_API_KEY` and `NOVITA_ACCESS_TOKEN`. Connection overrides use `GPURUN_DOMAIN` / `GPURUN_BASE_URL` / `GPURUN_DATA_URL` before the corresponding `NOVITA_*` variables.
 
-Use `Novita` as the default entry point for applications and examples. Configure it
+Use `Gpurun` as the default entry point for applications and examples. Configure it
 once, then use it to create or reconnect sandboxes and access templates, volumes,
 and secrets. Static entry points such as `Sandbox.create` and
 `CodeInterpreterSandbox.create` remain available for advanced integrations and
 backward compatibility.
 
 ```java
-import ai.novita.sandbox.core.Novita;
-import ai.novita.sandbox.core.Sandbox;
-import ai.novita.sandbox.core.CommandResult;
+import ai.gpurun.sandbox.core.Gpurun;
+import ai.gpurun.sandbox.core.Sandbox;
+import ai.gpurun.sandbox.core.CommandResult;
 
 public class Example {
     public static void main(String[] args) throws Exception {
-        try (Novita client = Novita.create();
+        try (Gpurun client = Gpurun.create();
              Sandbox sandbox = client.createSandbox("base")) {
             // Write a file
             sandbox.files().write("/tmp/hello.txt", "Hello, World!".getBytes(), null);
@@ -83,6 +83,32 @@ The SDK is organized into three main modules:
 - **core**: Core sandbox functionality (lifecycle, filesystem, commands)
 - **code_interpreter**: Jupyter-style code execution
 - **desktop**: Desktop environment automation
+- **boxapi**: BoxAPI control plane (sandboxes, templates, images, runtimes, balloon and scheduler)
+- **boxd**: boxd data plane (processes, exec, WebSocket and Connect streams)
+
+## BoxAPI and boxd
+
+`Gpurun` exposes both control plane and data plane clients:
+
+```java
+import ai.gpurun.sandbox.core.Gpurun;
+import ai.gpurun.sandbox.boxapi.BoxApiModels.CreateSandboxRequest;
+import ai.gpurun.sandbox.boxapi.BoxApiModels.Sandbox;
+import ai.gpurun.sandbox.boxd.BoxdModels.ExecResult;
+
+try (Gpurun client = Gpurun.create()) {
+    Sandbox created = client.box.createSandbox(new CreateSandboxRequest()
+        .templateID("base"));
+    ExecResult result = client.data.exec(java.util.Arrays.asList("echo", "hello"), null);
+    System.out.println(result.stdout);
+}
+```
+
+BoxAPI defaults to `http://localhost:8080`; boxd defaults to `http://localhost:8082`. Override with `GPURUN_BASE_URL` / `GPURUN_DATA_URL`, with `SandboxOptions.boxApiBaseUrl(...)` / `boxDataUrl(...)`, or with each client's builder. Every boxd request sends `Novita-Sandbox-Id` and the `sandboxID` query parameter; set the sandbox ID via `GPURUN_SANDBOX_ID` or `SandboxOptions.sandboxId(...)`.
+
+`BoxApiException` and `BoxdException` are unchecked and expose `getStatus()` and `getCode()`. `BoxdClient.exec` parses both 200 and 422 bodies; 422 carries a non-zero exit code. `connectProcess` returns a WebSocket-backed handle with `send`, `close` and `awaitEnd`; Connect streams return `ProcessStream` with the same lifecycle. Connect frame decoding is available through `BoxdClient.decodeFrame`.
+
+The deprecated `ai.gpurun.sandbox.core.Novita` facade remains as a compatibility subclass of `Gpurun`.
 
 ## Documentation
 
@@ -104,16 +130,16 @@ try (java.io.InputStream input = sandbox.files().readStream("/tmp/output.bin")) 
 }
 ```
 
-Create a sandbox through `Novita`, then wrap it as a code interpreter to use
+Create a sandbox through `Gpurun`, then wrap it as a code interpreter to use
 NDJSON callbacks, rich results and structured execution errors:
 
 ```java
-import ai.novita.sandbox.core.Novita;
-import ai.novita.sandbox.code_interpreter.CodeInterpreterSandbox;
-import ai.novita.sandbox.code_interpreter.RunCodeOpts;
-import ai.novita.sandbox.code_interpreter.ExecutionResult;
+import ai.gpurun.sandbox.core.Gpurun;
+import ai.gpurun.sandbox.code_interpreter.CodeInterpreterSandbox;
+import ai.gpurun.sandbox.code_interpreter.RunCodeOpts;
+import ai.gpurun.sandbox.code_interpreter.ExecutionResult;
 
-try (Novita client = Novita.create();
+try (Gpurun client = Gpurun.create();
      CodeInterpreterSandbox interpreter =
          CodeInterpreterSandbox.wrap(client.createSandbox("code-interpreter-v1"))) {
     ExecutionResult result = interpreter.runCode("print('hello')\n6 * 7",
@@ -128,7 +154,7 @@ try (Novita client = Novita.create();
 To reconnect with the same configuration, use
 `CodeInterpreterSandbox.wrap(client.connectSandbox(sandboxId))`.
 
-Closing a sandbox wrapper terminates its sandbox. Closing `Novita` releases the
+Closing a sandbox wrapper terminates its sandbox. Closing `Gpurun` releases the
 facade's shared HTTP client; sandboxes have their own clients and must still be
 closed or killed. A command handle's
 `disconnect()` only detaches its stream and leaves the process running; reconnect
@@ -142,16 +168,16 @@ The view copies its options, so another caller's repository or environment is
 unaffected:
 
 ```java
-ai.novita.sandbox.core.CommandOpts options = new ai.novita.sandbox.core.CommandOpts();
+ai.gpurun.sandbox.core.CommandOpts options = new ai.gpurun.sandbox.core.CommandOpts();
 options.setWorkDir("/home/user/project");
 options.setUser("user");
 options.setTimeout(30);
 options.setRequestTimeoutSeconds(10);
-ai.novita.sandbox.core.Git git = sandbox.git().withOptions(options);
+ai.gpurun.sandbox.core.Git git = sandbox.git().withOptions(options);
 
-ai.novita.sandbox.core.GitAuth auth = new ai.novita.sandbox.core.GitAuth()
+ai.gpurun.sandbox.core.GitAuth auth = new ai.gpurun.sandbox.core.GitAuth()
     .setUsername("git-user").setPassword(System.getenv("GIT_TOKEN"));
-git.pull(new ai.novita.sandbox.core.GitPullOptions()
+git.pull(new ai.gpurun.sandbox.core.GitPullOptions()
     .setRemote("origin").setBranch("main").setAuth(auth).setRebase(true));
 ```
 
@@ -219,18 +245,18 @@ that treated it as an integer must use a string.
 ## Migration jobs
 
 `client.job()` (also `jobs()`) migrates sandboxes and distributes templates between
-modern Novita clusters. The client's domain/base URL selects the target cluster;
+modern Gpurun clusters. The client's domain/base URL selects the target cluster;
 `sourceRegion` identifies the source. Requests share the facade's credentials,
 headers and timeout configuration.
 
 ```java
-import ai.novita.sandbox.core.*;
+import ai.gpurun.sandbox.core.*;
 import java.time.Duration;
 import java.util.Arrays;
 
 SandboxOpts options = new SandboxOpts();
 options.setDomain("us-phx-1.sandbox.novita.ai");
-try (Novita client = Novita.create(options)) {
+try (Gpurun client = Gpurun.create(options)) {
     String jobId = client.job().migrateSandboxes(Arrays.asList("sandbox-a", "sandbox-b"),
         new JobCreateOptions().setSourceRegion("source-region-id"));
     MigrationStatus status = client.job().waitFor(jobId, new JobWaitOptions()
@@ -264,7 +290,7 @@ statuses are retained. `MigrationNotSupportedException` identifies unsupported
 clusters, including legacy domains.
 
 `Job.create(options)` is an independent, closeable client. Closing a Job obtained
-from `client.job()` leaves the owning Novita client open; close the facade to
+from `client.job()` leaves the owning Gpurun client open; close the facade to
 release its shared resources.
 
 ## License

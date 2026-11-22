@@ -1,8 +1,8 @@
 # Contributing
 
-Use Go 1.25+, JDK 11+ and Maven 3.9+. Python 3.9+ runs the release and independent
-consumer checks. Start a feature or fix branch from main and open a pull request
-with a description of the behavior change and its validation.
+Use Go 1.25+, JDK 11+, Maven 3.9+, Node 24+ and Python 3.9+. Start a feature or
+fix branch from main and open a pull request with a description of the behavior
+change and its validation.
 
 ```sh
 cd sdk-go
@@ -11,6 +11,11 @@ go vet ./...
 go test -race ./...
 cd ../sdk-java
 mvn test
+cd ../sdk-ts
+npm ci && npm run build && node --test test/*.mjs
+cd ../sdk-python
+python3 -m compileall -q gpurun_sandbox
+python3 -m unittest discover -s tests -v
 ```
 
 Run `python3 -m unittest discover -s .github/scripts/tests -v` and
@@ -20,10 +25,12 @@ no API credentials and create no cloud resources. See
 [consumer testing](release-smoke-tests/README.md) for isolated-cache and opt-in
 live testing options.
 
-Keep request names, response parsing, timeouts and errors aligned between Go and
-Java. See each SDK README for the operations available on this branch. Public examples
-should begin with the Novita facade. Add regression tests for behavior changes and
-update CHANGELOG.md and relevant README sections.
+Keep request names, response parsing, timeouts and errors aligned across all four
+SDKs. Wire changes to `boxapi` and `boxd` must preserve the bare-JSON success
+format, the Bearer credential header, the boxd sandbox-ID header and the 5-byte
+Connect stream framing. Public examples should begin with the `Gpurun` facade.
+Add regression tests for behavior changes and update CHANGELOG.md and relevant
+README sections.
 
 Tests and examples must create their own resources and clean them up. Never use
 hard-coded customer resource IDs, commit credentials, or print authentication

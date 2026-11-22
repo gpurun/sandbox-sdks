@@ -7,16 +7,20 @@ package core
 type SandboxOpts struct {
 	// --- Connection options (control plane) ---
 
-	// APIKey is the Novita API key. Defaults to NOVITA_API_KEY.
+	// APIKey is the Novita API key. Defaults to GPURUN_API_KEY or NOVITA_API_KEY.
 	APIKey string
-	// AccessToken is the Novita access token. Defaults to NOVITA_ACCESS_TOKEN.
+	// AccessToken is the Novita access token. Defaults to GPURUN_ACCESS_TOKEN or NOVITA_ACCESS_TOKEN.
 	AccessToken string
-	// Domain is the sandbox domain. Defaults to NOVITA_DOMAIN or us-phx-1.sandbox.novita.ai.
+	// Domain is the sandbox domain. Defaults to GPURUN_DOMAIN, NOVITA_DOMAIN or us-phx-1.sandbox.novita.ai.
 	Domain string
-	// APIURL overrides the control-plane URL. Defaults to NOVITA_API_URL or https://api.{domain}.
+	// APIURL overrides the control-plane URL. Defaults to GPURUN_BASE_URL, NOVITA_API_URL or https://api.{domain}.
 	APIURL string
 	// SandboxURL overrides the envd URL used for data-plane calls.
-	SandboxURL string
+	SandboxURL   string
+	BoxAPIURL    string
+	BoxDataURL   string
+	BoxSandboxID string
+	BoxToken     string
 	// Debug points the SDK at a local envd instead of a remote sandbox.
 	Debug *bool
 	// RequestTimeoutMs is the per-request timeout in milliseconds.

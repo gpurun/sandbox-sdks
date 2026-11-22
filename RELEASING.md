@@ -1,15 +1,17 @@
-# Go and Java releases
+# SDK releases
 
-| Component | Package | Tag example |
-| --- | --- | --- |
-| Go | github.com/novitalabs/sandbox-sdks/sdk-go | sdk-go/v0.0.1 |
-| Java | ai.novita:novita-sandbox | java-2.1.2-alpha.5 |
+| Component | Package | Tag example | Release branch |
+| --- | --- | --- | --- |
+| Go | github.com/gpurun/gpurun-sandbox/sdk-go | sdk-go/v0.0.1 | main |
+| Java | ai.gpurun:gpurun-sandbox | java-2.1.2-alpha.5 | main / beta / alpha |
+| TypeScript | gpurun-sandbox (npm) | npm-0.1.0 | main / beta / alpha |
+| Python | gpurun-sandbox (PyPI) | pypi-0.1.0 | main / beta / alpha |
 
 Stable versions come from main, beta versions from beta, and alpha/rc versions
-from alpha. Tags must match the component version in Go SDKVersion or the Java
-POM and must point to a commit on the appropriate remote branch. Released
-versions and tags are immutable. The examples describe the current metadata,
-not permission to reuse an existing published version.
+from alpha. Tags must match the component version in the Go SDKVersion, Java POM,
+`package.json` or `pyproject.toml`, and must point to a commit on the appropriate
+remote branch. Released versions and tags are immutable. The examples describe
+the current metadata, not permission to reuse an existing published version.
 
 Before tagging, run CI, isolated [package consumers](release-smoke-tests/README.md)
 and the appropriate live acceptance tests. Install the local guard using
@@ -27,24 +29,30 @@ Publish validated component workflow if its original run failed.
 ## Installing a Java prerelease
 
 Java stable and prerelease versions publish signed binary/source/Javadoc JARs
-and POMs to Maven Central. Binary/source JARs include META-INF/LICENSE; the Javadoc JAR includes doc-files/LICENSE. Consumers need no
-GitHub Packages settings or registry credentials. For example:
+and POMs to Maven Central. Binary/source JARs include META-INF/LICENSE; the
+Javadoc JAR includes doc-files/LICENSE. Consumers need no GitHub Packages
+settings or registry credentials. For example:
 
 ```xml
 <dependency>
-  <groupId>ai.novita</groupId>
-  <artifactId>novita-sandbox</artifactId>
+  <groupId>ai.gpurun</groupId>
+  <artifactId>gpurun-sandbox</artifactId>
   <version>2.1.2-alpha.5</version>
 </dependency>
 ```
 
+TypeScript installs from npm (`npm install gpurun-sandbox`) and Python from PyPI
+(`pip install gpurun-sandbox`). Prerelease channels use the matching dist-tag.
+
 ## Publisher setup
 
-Verify the ai.novita namespace in the Central Publisher Portal and grant the
+Verify the ai.gpurun namespace in the Central Publisher Portal and grant the
 publishing account access. Configure these GitHub Actions secrets:
 
 - CENTRAL_USERNAME and CENTRAL_TOKEN: Central User Token credentials.
 - MAVEN_GPG_PRIVATE_KEY and MAVEN_GPG_PASSPHRASE: the signing key and passphrase.
+- NPM_TOKEN: npm automation token with publish access to `gpurun-sandbox`.
+- PYPI_TOKEN: PyPI API token scoped to `gpurun-sandbox`.
 
 Publish the public signing key through a Central-supported keyserver. Never
 commit private keys or tokens. GitHub Releases use GITHUB_TOKEN with contents

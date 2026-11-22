@@ -1,19 +1,24 @@
-# Novita Sandbox SDKs
+# Gpurun Sandbox SDKs
 
-Official Novita Agent Sandbox SDKs for Go and Java. Both SDKs expose the same
-sandbox control-plane and runtime APIs while following the language conventions
-of their respective ecosystems.
+Official Gpurun Sandbox SDKs for Go, Java, TypeScript and Python. Every SDK keeps
+the existing sandbox API available for compatibility and adds the NovitaBox
+`boxapi` control plane plus the `boxd` data plane.
 
 ## SDKs
 
-- [Go SDK](sdk-go/README.md) — module `github.com/novitalabs/sandbox-sdks/sdk-go`
-- [Java SDK](sdk-java/README.md) — Maven artifact `ai.novita:novita-sandbox`
+| Language | Package |
+| --- | --- |
+| [Go](sdk-go/README.md) | `github.com/gpurun/gpurun-sandbox/sdk-go` |
+| [Java](sdk-java/README.md) | `ai.gpurun:gpurun-sandbox` |
+| TypeScript | `gpurun-sandbox` |
+| Python | `gpurun-sandbox` (import as `gpurun_sandbox`) |
 
-Set `NOVITA_API_KEY` before creating a client. The default Novita Sandbox domain is
-`us-phx-1.sandbox.novita.ai`; applications can override it through the SDK options or
-`NOVITA_DOMAIN` when they need to target another environment.
+Set `GPURUN_API_KEY` before creating a client; `NOVITA_API_KEY` and the other
+`NOVITA_*` variables remain supported as fallbacks. The boxapi client defaults to
+`http://localhost:8080` and the boxd client to `http://localhost:8082`; both can
+be overridden through the SDK options or `GPURUN_BASE_URL` / `GPURUN_DATA_URL`.
 
-The source repository is [novitalabs/sandbox-sdks](https://github.com/novitalabs/sandbox-sdks).
+The source repository is [gpurun/gpurun-sandbox](https://github.com/gpurun/gpurun-sandbox).
 
 ## Development and releases
 
@@ -23,5 +28,5 @@ Report vulnerabilities using [SECURITY.md](SECURITY.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Both SDKs also include their license in the
+MIT — see [LICENSE](LICENSE). Both native SDKs also include their license in the
 component directory; Java binary/source archives carry META-INF/LICENSE; Javadoc archives include doc-files/LICENSE.

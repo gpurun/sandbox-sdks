@@ -1,7 +1,7 @@
 package example.customer;
 
-import ai.novita.sandbox.core.*;
-import ai.novita.sandbox.code_interpreter.*;
+import ai.gpurun.sandbox.core.*;
+import ai.gpurun.sandbox.code_interpreter.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -10,14 +10,14 @@ import java.nio.charset.StandardCharsets;
 import static org.junit.jupiter.api.Assertions.*;
 
 /** Opt-in: creates one billable sandbox and cleans it up in finally. */
-@EnabledIfEnvironmentVariable(named="NOVITA_RUN_LIVE", matches="1")
+@EnabledIfEnvironmentVariable(named="GPURUN_RUN_LIVE", matches="1")
 @Timeout(180)
 class LiveCustomerTest {
     @Test void customerCanCreateExecuteReconnectAndCleanUp() throws Exception {
-        assertNotNull(System.getenv("NOVITA_API_KEY"), "NOVITA_API_KEY is required");
+        assertNotNull(System.getenv("GPURUN_API_KEY"), "GPURUN_API_KEY is required");
         SandboxOpts opts = new SandboxOpts();
-        opts.setApiKey(System.getenv("NOVITA_API_KEY"));
-        String template = System.getenv("NOVITA_CODE_TEMPLATE");
+        opts.setApiKey(System.getenv("GPURUN_API_KEY"));
+        String template = System.getenv("GPURUN_CODE_TEMPLATE");
         if (template == null || template.isEmpty()) template = "code-interpreter-v1";
         try (Novita client = Novita.create(opts);
              CodeInterpreterSandbox sandbox = CodeInterpreterSandbox.wrap(client.createSandbox(template))) {

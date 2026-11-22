@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"log"
 
-	novita "github.com/novitalabs/sandbox-sdks/sdk-go"
-	"github.com/novitalabs/sandbox-sdks/sdk-go/core"
+	gpurun "github.com/gpurun/gpurun-sandbox/sdk-go"
+	"github.com/gpurun/gpurun-sandbox/sdk-go/core"
 )
 
 func main() {
 	ctx := context.Background()
 
-	// Configure the high-level client; the API key is read from NOVITA_API_KEY.
-	client, err := novita.New(nil)
+	// Configure the high-level client; the API key is read from GPURUN_API_KEY or NOVITA_API_KEY.
+	client, err := gpurun.New(nil)
 	if err != nil {
-		log.Fatalf("Failed to initialize Novita: %v", err)
+		log.Fatalf("Failed to initialize Gpurun: %v", err)
 	}
 
 	// Set the template and lifetime for this sandbox.

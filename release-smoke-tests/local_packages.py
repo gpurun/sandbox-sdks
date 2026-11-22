@@ -15,14 +15,14 @@ import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-GO_MODULE = "github.com/novitalabs/sandbox-sdks/sdk-go"
+GO_MODULE = "github.com/gpurun/gpurun-sandbox/sdk-go"
 
 
 def local_environment(live=False):
     injected_options = {"MAVEN_ARGS", "MAVEN_OPTS", "MAVEN_CONFIG", "MAVEN_DEBUG_OPTS",
                         "JAVA_TOOL_OPTIONS", "JDK_JAVA_OPTIONS", "_JAVA_OPTIONS"}
     env = {key: value for key, value in os.environ.items()
-           if key not in injected_options and (live or not key.startswith("NOVITA_"))}
+           if key not in injected_options and (live or not (key.startswith("GPURUN_") or key.startswith("NOVITA_")))}
     env.update(MAVEN_SKIP_RC="1", GOENV="off", GOFLAGS="")
     return env
 
@@ -69,7 +69,7 @@ def go_package(out):
     env = dict(local_environment(), GOWORK="off", GOPROXY=proxy.as_uri() + ",https://proxy.golang.org",
                GOSUMDB="sum.golang.org", GOPRIVATE="", GONOPROXY="", GONOSUMDB=GO_MODULE, GOFLAGS="",
                GOTOOLCHAIN="local", GOMODCACHE=str(out / "go-modules"), GOCACHE=str(out / "go-build-cache"),
-               NOVITA_EXPECTED_VERSION=version, NOVITA_RUN_LIVE="0")
+               GPURUN_EXPECTED_VERSION=version, GPURUN_RUN_LIVE="0")
     # Changing require in this isolated consumer is intentional; no replace is used.
     run(["go", "mod", "edit", "-require=" + GO_MODULE + "@" + module_version], consumer, env)
     run(["go", "mod", "download", GO_MODULE], consumer, env)
@@ -85,7 +85,7 @@ def go_package(out):
     # Save the non-secret environment needed to reuse this consumer for a live check.
     (out / "go-environment.json").write_text(json.dumps({key: env[key] for key in (
         "GOWORK", "GOPROXY", "GOSUMDB", "GOPRIVATE", "GONOPROXY", "GONOSUMDB",
-        "GOFLAGS", "GOTOOLCHAIN", "GOMODCACHE", "GOCACHE", "NOVITA_EXPECTED_VERSION")}, indent=2) + "\n")
+        "GOFLAGS", "GOTOOLCHAIN", "GOMODCACHE", "GOCACHE", "GPURUN_EXPECTED_VERSION")}, indent=2) + "\n")
     return {"module": GO_MODULE, "version": module_version, "consumer": str(consumer)}
 
 
@@ -102,7 +102,7 @@ def java_package(out, cache, offline):
         shutil.copytree(cache, repository, ignore=shutil.ignore_patterns(
             "settings.xml", "*.lastUpdated", "_remote.repositories"))
         # The SDK under test must be installed by this run, never copied from a cache.
-        shutil.rmtree(repository / "ai/novita/novita-sandbox", ignore_errors=True)
+        shutil.rmtree(repository / "ai/gpurun/gpurun-sandbox", ignore_errors=True)
     else:
         repository.mkdir()
     settings = out / "maven-settings.xml"
@@ -115,17 +115,17 @@ def java_package(out, cache, offline):
                "org.apache.maven.plugins:maven-install-plugin:3.1.4:install"], source)
     consumer = out / "java-consumer"
     shutil.copytree(ROOT / "release-smoke-tests/java", consumer)
-    run(mvn + ["-Dnovita.version=" + version, "test"], consumer,
-        dict(local_environment(), NOVITA_RUN_LIVE="0"))
-    return {"artifact": "ai.novita:novita-sandbox", "version": version,
+    run(mvn + ["-Dgpurun.version=" + version, "test"], consumer,
+        dict(local_environment(), GPURUN_RUN_LIVE="0"))
+    return {"artifact": "ai.gpurun:gpurun-sandbox", "version": version,
             "consumer": str(consumer), "repository": str(repository)}
 
 
 def live_packages(out, language):
-    if not os.environ.get("NOVITA_API_KEY"):
-        raise ValueError("Set NOVITA_API_KEY in your environment before --run-live")
+    if not os.environ.get("GPURUN_API_KEY"):
+        raise ValueError("Set GPURUN_API_KEY in your environment before --run-live")
     result = json.loads((out / "result.json").read_text())
-    env = dict(local_environment(live=True), NOVITA_RUN_LIVE="1")
+    env = dict(local_environment(live=True), GPURUN_RUN_LIVE="1")
     selected = ("go", "java") if language == "all" else (language,)
     for name in selected:
         if name not in result:
@@ -138,7 +138,7 @@ def live_packages(out, language):
         else:
             run(["mvn", "-B", "--no-transfer-progress", "--offline", "-s", out / "maven-settings.xml",
                  "-gs", out / "maven-settings.xml",
-                 "-Dmaven.repo.local=" + consumer["repository"], "-Dnovita.version=" + consumer["version"],
+                 "-Dmaven.repo.local=" + consumer["repository"], "-Dgpurun.version=" + consumer["version"],
                  "-Dtest=LiveCustomerTest", "test"], consumer["consumer"], env)
 
 
@@ -156,7 +156,7 @@ def main():
             parser.error("--run-live reuses existing artifacts; omit --output and --maven-cache")
         live_packages(args.run_live.expanduser().resolve(), args.language)
         return
-    out = args.output.expanduser().resolve() if args.output else Path(tempfile.mkdtemp(prefix="novita-consumer-")).resolve()
+    out = args.output.expanduser().resolve() if args.output else Path(tempfile.mkdtemp(prefix="gpurun-consumer-")).resolve()
     if out == ROOT or ROOT in out.parents:
         parser.error("--output must be outside the repository")
     if out.exists() and any(out.iterdir()):

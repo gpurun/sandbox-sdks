@@ -15,8 +15,10 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 COMPONENTS = {
-    "sdk-go/v": ("go", "sdk-go", "github.com/novitalabs/sandbox-sdks/sdk-go"),
-    "java-": ("java", "sdk-java", "ai.novita:novita-sandbox"),
+    "sdk-go/v": ("go", "sdk-go", "github.com/gpurun/gpurun-sandbox/sdk-go"),
+    "java-": ("java", "sdk-java", "ai.gpurun:gpurun-sandbox"),
+    "npm-": ("npm", "sdk-ts", "gpurun-sandbox"),
+    "pypi-": ("pypi", "sdk-python", "gpurun-sandbox"),
 }
 
 NUMBER = r"(?:0|[1-9][0-9]*)"
@@ -30,7 +32,7 @@ def describe(tag):
             match = re.fullmatch(rf"({BASE})(?:-(alpha|beta|rc)(?:\.({NUMBER})|([1-9][0-9]*|0)))?", version)
             channel = (match[2] or "stable") if match else None
             if channel is None:
-                raise ValueError("Invalid version: use SemVer for Go and Java")
+                raise ValueError("Invalid version: use SemVer for Go, Java, npm, and PyPI")
             if component == "go" and int(version.split(".")[0]) >= 2:
                 raise ValueError("Go tag major v2 or later requires a versioned module path")
             return dict(tag=tag, prefix=prefix, component=component, directory=directory,
@@ -58,11 +60,30 @@ def check(tag, commit="HEAD", remote=None, branch_ref=None):
     if result.returncode != 0:
         raise ValueError(f"{tag} must belong to {info['branch']}")
     directory = info["directory"]
-    if info["component"] == "java":
+    component = info["component"]
+    if component == "java":
         root = ET.fromstring(read_at(commit, f"{directory}/pom.xml"))
         ns = {"m": "http://maven.apache.org/POM/4.0.0"}
         actual = root.findtext("m:version", namespaces=ns)
         name = root.findtext("m:groupId", namespaces=ns) + ":" + root.findtext("m:artifactId", namespaces=ns)
+    elif component == "npm":
+        manifest = json.loads(read_at(commit, f"{directory}/package.json"))
+        name = manifest.get("name")
+        actual = manifest.get("version")
+    elif component == "pypi":
+        text = read_at(commit, f"{directory}/pyproject.toml")
+        project = None
+        for section, body in re.findall(r"(?ms)^\[([^\]]+)\]\n(.*?)(?=^\[|\Z)", text):
+            if section.strip() == "project":
+                project = body
+                break
+        if project is None:
+            raise ValueError("PyPI pyproject.toml missing [project] section")
+        name_match = re.search(r'(?m)^name\s*=\s*"([^"]+)"\s*$', project)
+        version_match = re.search(r'(?m)^version\s*=\s*"([^"]+)"\s*$', project)
+        if not name_match or not version_match:
+            raise ValueError("PyPI pyproject.toml missing project name or version")
+        name, actual = name_match[1], version_match[1]
     else:
         name = re.search(r"^module\s+(\S+)", read_at(commit, "sdk-go/go.mod"), re.M)[1]
         actual = re.search(r'SDKVersion\s*=\s*"([^"]+)"', read_at(commit, "sdk-go/core/connection_config.go"))[1]
@@ -82,7 +103,7 @@ def check_registry(info):
     component, version, name = info["component"], info["version"], info["package"]
     if component != "java":
         return  # Go is published by its immutable module tag.
-    url = f"https://repo.maven.apache.org/maven2/ai/novita/novita-sandbox/{version}/novita-sandbox-{version}.pom"
+    url = f"https://repo.maven.apache.org/maven2/ai/gpurun/gpurun-sandbox/{version}/gpurun-sandbox-{version}.pom"
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "sandbox-sdk-release-check"})
         with urllib.request.urlopen(req, timeout=30):
@@ -101,10 +122,10 @@ def verify_artifacts(info, directory):
     component, version, package = info["component"], info["version"], info["package"]
     if component == "java":
         for suffix in (".jar", "-sources.jar", "-javadoc.jar"):
-            if not (directory / f"novita-sandbox-{version}{suffix}").is_file():
+            if not (directory / f"gpurun-sandbox-{version}{suffix}").is_file():
                 raise ValueError("Missing Java release artifact: " + suffix)
         for suffix in (".jar", "-sources.jar", "-javadoc.jar"):
-            with zipfile.ZipFile(directory / f"novita-sandbox-{version}{suffix}") as archive:
+            with zipfile.ZipFile(directory / f"gpurun-sandbox-{version}{suffix}") as archive:
                 try:
                     license_path = "doc-files/LICENSE" if suffix == "-javadoc.jar" else "META-INF/LICENSE"
                     license_text = archive.read(license_path).decode()
@@ -112,13 +133,45 @@ def verify_artifacts(info, directory):
                     raise ValueError("Java archive is missing its license: " + suffix) from None
                 if "MIT License" not in license_text or "Copyright" not in license_text or "Permission is hereby granted" not in license_text:
                     raise ValueError("Java archive has an invalid license: " + suffix)
-        with zipfile.ZipFile(directory / f"novita-sandbox-{version}.jar") as archive:
-            metadata = archive.read("META-INF/maven/ai.novita/novita-sandbox/pom.properties").decode()
+        with zipfile.ZipFile(directory / f"gpurun-sandbox-{version}.jar") as archive:
+            metadata = archive.read("META-INF/maven/ai.gpurun/gpurun-sandbox/pom.properties").decode()
             values = dict(re.findall(r"^(groupId|artifactId|version)=(.*)$", metadata, re.M))
-            if (values.get("groupId"), values.get("artifactId"), values.get("version")) != ("ai.novita", "novita-sandbox", version):
+            if (values.get("groupId"), values.get("artifactId"), values.get("version")) != ("ai.gpurun", "gpurun-sandbox", version):
                 raise ValueError("JAR Maven coordinates differ from tag")
+    elif component == "npm":
+        path = directory / f"gpurun-sandbox-{version}.tgz"
+        if not path.is_file():
+            raise ValueError("Missing npm release artifact")
+        with tarfile.open(path) as archive:
+            members = {m.name.removeprefix("./"): m for m in archive.getmembers()}
+            if "package/package.json" not in members:
+                raise ValueError("npm archive missing package/package.json")
+            manifest = json.loads(archive.extractfile(members["package/package.json"]).read().decode())
+            if manifest.get("name") != package or manifest.get("version") != version:
+                raise ValueError("npm archive metadata differs from tag")
+    elif component == "pypi":
+        path = directory / f"gpurun_sandbox-{version}.tar.gz"
+        if not path.is_file():
+            raise ValueError("Missing PyPI sdist artifact")
+        with tarfile.open(path) as archive:
+            members = {m.name.removeprefix("./"): m for m in archive.getmembers()}
+            pyproject_member = next((name for name in members if name.endswith("/pyproject.toml") or name == "pyproject.toml"), None)
+            if pyproject_member is None:
+                raise ValueError("PyPI sdist missing pyproject.toml")
+            pyproject = archive.extractfile(members[pyproject_member]).read().decode()
+            project = None
+            for section, body in re.findall(r"(?ms)^\[([^\]]+)\]\n(.*?)(?=^\[|\Z)", pyproject):
+                if section.strip() == "project":
+                    project = body
+                    break
+            if project is None:
+                raise ValueError("PyPI sdist missing [project] section")
+            name_match = re.search(r'(?m)^name\s*=\s*"([^"]+)"\s*$', project)
+            version_match = re.search(r'(?m)^version\s*=\s*"([^"]+)"\s*$', project)
+            if not name_match or not version_match or name_match[1] != package or version_match[1] != version:
+                raise ValueError("PyPI sdist metadata differs from tag")
     else:
-        path = directory / f"novita-sandbox-go-{version}.tar.gz"
+        path = directory / f"gpurun-sandbox-go-{version}.tar.gz"
         if not path.is_file():
             raise ValueError("Missing Go source archive")
         with tarfile.open(path) as archive:

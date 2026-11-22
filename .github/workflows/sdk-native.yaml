@@ -37,3 +37,29 @@ jobs:
         working-directory: sdk-java
       - name: Test the installed JAR from an independent consumer
         run: python3 release-smoke-tests/local_packages.py --language java --maven-cache "$HOME/.m2/repository"
+  ts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: sdk-ts/package-lock.json
+      - run: npm ci
+        working-directory: sdk-ts
+      - run: npm run build
+        working-directory: sdk-ts
+      - run: node --test test/*.mjs
+        working-directory: sdk-ts
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python3 -m unittest discover -s tests -v
+        working-directory: sdk-python
+      - run: python3 -m compileall -q gpurun_sandbox
+        working-directory: sdk-python

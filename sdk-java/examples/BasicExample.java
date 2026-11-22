@@ -1,15 +1,15 @@
-package ai.novita.sandbox.examples;
+package ai.gpurun.sandbox.examples;
 
-import ai.novita.sandbox.core.Sandbox;
-import ai.novita.sandbox.core.CommandResult;
-import ai.novita.sandbox.core.Novita;
+import ai.gpurun.sandbox.core.Sandbox;
+import ai.gpurun.sandbox.core.CommandResult;
+import ai.gpurun.sandbox.core.Gpurun;
 
 /**
- * Basic example demonstrating Novita Sandbox usage.
+ * Basic example demonstrating Gpurun Sandbox usage.
  */
 public class BasicExample {
     public static void main(String[] args) {
-        try (Novita client = Novita.create()) {
+        try (Gpurun client = Gpurun.create()) {
             // Create a sandbox
             Sandbox sandbox = client.createSandbox("base");
             System.out.println("Created sandbox: " + sandbox.getId());

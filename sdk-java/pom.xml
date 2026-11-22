@@ -5,14 +5,14 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ai.novita</groupId>
-    <artifactId>novita-sandbox</artifactId>
+    <groupId>ai.gpurun</groupId>
+    <artifactId>gpurun-sandbox</artifactId>
     <version>2.1.2-alpha.5</version>
     <packaging>jar</packaging>
 
-    <name>Novita Sandbox Java SDK</name>
-    <description>Java SDK for Novita Agent Sandbox - isolated cloud sandboxes for AI agents</description>
-    <url>https://novita.ai/sandbox</url>
+    <name>Gpurun Sandbox Java SDK</name>
+    <description>Java SDK for Gpurun Sandbox - isolated cloud sandboxes for AI agents</description>
+    <url>https://github.com/gpurun/gpurun-sandbox</url>
 
     <licenses>
         <license>
@@ -23,10 +23,10 @@
 
     <developers>
         <developer>
-            <name>Novita AI</name>
+            <name>Gpurun Sandbox</name>
             <email>support@novita.ai</email>
-            <organization>Novita</organization>
-            <organizationUrl>https://novita.ai</organizationUrl>
+            <organization>Gpurun</organization>
+            <organizationUrl>https://github.com/gpurun/gpurun-sandbox</organizationUrl>
         </developer>
     </developers>
 
@@ -103,9 +103,9 @@
     </build>
 
     <scm>
-        <connection>scm:git:git://github.com/novitalabs/sandbox-sdks.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/novitalabs/sandbox-sdks.git</developerConnection>
-        <url>https://github.com/novitalabs/sandbox-sdks</url>
+        <connection>scm:git:git://github.com/gpurun/gpurun-sandbox.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/gpurun/gpurun-sandbox.git</developerConnection>
+        <url>https://github.com/gpurun/gpurun-sandbox</url>
         <tag>HEAD</tag>
     </scm>
 

@@ -7,18 +7,18 @@ import (
 	"testing"
 	"time"
 
-	novita "github.com/novitalabs/sandbox-sdks/sdk-go"
-	interpreter "github.com/novitalabs/sandbox-sdks/sdk-go/code_interpreter"
-	"github.com/novitalabs/sandbox-sdks/sdk-go/core"
+	novita "github.com/gpurun/gpurun-sandbox/sdk-go"
+	interpreter "github.com/gpurun/gpurun-sandbox/sdk-go/code_interpreter"
+	"github.com/gpurun/gpurun-sandbox/sdk-go/core"
 )
 
 // Opt-in only: creates one billable sandbox, then kills it even after a test failure.
 func TestLiveCustomerWorkflow(t *testing.T) {
-	if os.Getenv("NOVITA_RUN_LIVE") != "1" {
-		t.Skip("set NOVITA_RUN_LIVE=1 to use a real sandbox")
+	if os.Getenv("GPURUN_RUN_LIVE") != "1" {
+		t.Skip("set GPURUN_RUN_LIVE=1 to use a real sandbox")
 	}
-	if os.Getenv("NOVITA_API_KEY") == "" {
-		t.Fatal("NOVITA_API_KEY is required")
+	if os.Getenv("GPURUN_API_KEY") == "" {
+		t.Fatal("GPURUN_API_KEY is required")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
@@ -27,7 +27,7 @@ func TestLiveCustomerWorkflow(t *testing.T) {
 		t.Fatal(err)
 	}
 	sandbox, err := client.CodeInterpreter.Create(ctx, &core.SandboxOpts{
-		Template: os.Getenv("NOVITA_CODE_TEMPLATE"), Timeout: 300,
+		Template: os.Getenv("GPURUN_CODE_TEMPLATE"), Timeout: 300,
 	})
 	if err != nil {
 		t.Fatal(err)

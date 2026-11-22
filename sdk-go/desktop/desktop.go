@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/novitalabs/sandbox-sdks/sdk-go/core"
+	"github.com/gpurun/gpurun-sandbox/sdk-go/core"
 )
 
 // Sandbox is a sandbox configured for desktop automation.

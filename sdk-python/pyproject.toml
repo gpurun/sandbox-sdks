@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gpurun-sandbox"
+version = "0.1.0"
+description = "Python client SDK for Gpurun sandbox"
+requires-python = ">=3.9"
+dependencies = []
+
+[tool.setuptools]
+packages = ["gpurun_sandbox"]

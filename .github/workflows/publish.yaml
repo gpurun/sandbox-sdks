@@ -40,11 +40,19 @@ jobs:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_TOKEN: ${{ secrets.CENTRAL_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           case "$COMPONENT" in
             java)
               : "${MAVEN_GPG_PRIVATE_KEY:?Configure MAVEN_GPG_PRIVATE_KEY}" "${MAVEN_GPG_PASSPHRASE:?Configure MAVEN_GPG_PASSPHRASE}"
               : "${CENTRAL_USERNAME:?Configure CENTRAL_USERNAME}" "${CENTRAL_TOKEN:?Configure CENTRAL_TOKEN}"
+              ;;
+            npm)
+              : "${NPM_TOKEN:?Configure NPM_TOKEN}"
+              ;;
+            pypi)
+              : "${PYPI_TOKEN:?Configure PYPI_TOKEN}"
               ;;
           esac
       - run: python3 -m unittest discover -s .github/scripts/tests -v
@@ -69,6 +77,20 @@ jobs:
           # Maven Central requires signatures for every release channel.
           gpg-private-key: ${{ secrets.MAVEN_GPG_PRIVATE_KEY }}
           gpg-passphrase: MAVEN_GPG_PASSPHRASE
+      - uses: actions/setup-node@v4
+        if: env.COMPONENT == 'npm'
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+          cache-dependency-path: sdk-ts/package-lock.json
+      - uses: actions/setup-python@v5
+        if: env.COMPONENT == 'pypi'
+        with:
+          python-version: '3.12'
+      - name: Install Python build tooling
+        if: env.COMPONENT == 'pypi'
+        run: python3 -m pip install build
       - name: Build and verify release archives
         run: bash .github/scripts/build-release.sh
       - name: Scan distributable contents
@@ -95,12 +117,25 @@ jobs:
         run: |
           cd sdk-java
           mvn -B --no-transfer-progress -Prelease,central -DskipTests -Dproject.build.outputTimestamp="$SOURCE_DATE_EPOCH" deploy
+      - name: Publish npm package
+        if: env.COMPONENT == 'npm'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm install -g npm@latest
+          npm publish --provenance --access public release-assets/gpurun-sandbox-"$VERSION".tgz
+      - name: Publish PyPI package
+        if: env.COMPONENT == 'pypi'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
+          packages-dir: release-assets
       - name: Preserve Java deployment artifacts even after a failure
         if: always() && env.COMPONENT == 'java'
         run: |
           mkdir -p release-assets
           find sdk-java/target -maxdepth 1 -type f \( -name '*.jar' -o -name '*.asc' \) -exec cp {} release-assets/ \;
-          cp sdk-java/pom.xml "release-assets/novita-sandbox-$VERSION.pom"
+          cp sdk-java/pom.xml "release-assets/gpurun-sandbox-$VERSION.pom"
       - uses: actions/upload-artifact@v4
         if: always() && env.COMPONENT == 'java'
         with:
@@ -108,8 +143,8 @@ jobs:
           path: release-assets/*
           if-no-files-found: error
           retention-days: 90
-      - name: Verify published Java package is consumable
-        if: env.COMPONENT == 'java'
+      - name: Verify published package is consumable
+        if: env.COMPONENT != 'go'
         run: python3 .github/scripts/verify-published.py "$TAG"
       - name: Create GitHub Release with installable artifacts
         env:
