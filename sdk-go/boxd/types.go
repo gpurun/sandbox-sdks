@@ -19,14 +19,17 @@ type ExecResult struct {
 }
 
 type ProcessInfo struct {
-	PID  int      `json:"pid,omitempty"`
-	Tag  string   `json:"tag,omitempty"`
-	Cmd  []string `json:"cmd,omitempty"`
-	Args []string `json:"args,omitempty"`
-	Cwd  string   `json:"cwd,omitempty"`
-	Tty  bool     `json:"tty,omitempty"`
-	Rows int      `json:"rows,omitempty"`
-	Cols int      `json:"cols,omitempty"`
+	ID        string   `json:"id,omitempty"`
+	PID       int      `json:"pid,omitempty"`
+	Tag       string   `json:"tag,omitempty"`
+	Cmd       []string `json:"cmd,omitempty"`
+	Args      []string `json:"args,omitempty"`
+	Cwd       string   `json:"cwd,omitempty"`
+	Tty       bool     `json:"tty,omitempty"`
+	State     string   `json:"state,omitempty"`
+	StartedAt string   `json:"startedAt,omitempty"`
+	Rows      int      `json:"rows,omitempty"`
+	Cols      int      `json:"cols,omitempty"`
 }
 
 type StartProcessRequest struct {
@@ -123,4 +126,14 @@ type ProcessEventBody struct {
 
 type ProcessEvent struct {
 	Event ProcessEventBody `json:"event"`
+}
+
+// ProcessWSEvent is a frame from the process WebSocket connect endpoint.
+// boxd sends {"type":"start","process":{...}} and {"type":"end","exit":{...}}
+// as TEXT JSON frames; boxproxy rewrites them to BINARY, which the SDK
+// tolerates by probing.
+type ProcessWSEvent struct {
+	Type    string       `json:"type"`
+	Process *ProcessInfo `json:"process,omitempty"`
+	Exit    *ProcessExit `json:"exit,omitempty"`
 }

@@ -180,10 +180,14 @@ public final class BoxdClient {
     }
 
     public ProcessSocket connectProcess(String id, ProcessOutputHandler handler) {
+        return connectProcess(id, handler, null);
+    }
+
+    public ProcessSocket connectProcess(String id, ProcessOutputHandler handler, ProcessSocketEventHandler onEvent) {
         HttpUrl target = target("/processes/" + segment(id) + "/connect");
         Request.Builder requestBuilder = new Request.Builder().url(target).headers(headers)
                 .header(SANDBOX_ID_HEADER, requireSandboxId()).get();
-        ProcessSocket socket = new ProcessSocket(handler);
+        ProcessSocket socket = new ProcessSocket(handler, onEvent);
         WebSocket webSocket = httpClient.newWebSocket(requestBuilder.build(), socket.listener());
         socket.attach(webSocket);
         return socket;
@@ -562,6 +566,7 @@ public final class BoxdClient {
 
     public final class ProcessSocket implements AutoCloseable {
         private final ProcessOutputHandler handler;
+        private final ProcessSocketEventHandler onEvent;
         private final CountDownLatch done = new CountDownLatch(1);
         private final AtomicReference<ProcessExit> exit = new AtomicReference<>();
         private final AtomicReference<BoxdException> failure = new AtomicReference<>();
@@ -569,7 +574,10 @@ public final class BoxdClient {
         private final AtomicBoolean closed = new AtomicBoolean(false);
         private volatile WebSocket webSocket;
 
-        private ProcessSocket(ProcessOutputHandler handler) { this.handler = handler; }
+        private ProcessSocket(ProcessOutputHandler handler, ProcessSocketEventHandler onEvent) {
+            this.handler = handler;
+            this.onEvent = onEvent;
+        }
 
         private void attach(WebSocket value) { webSocket = value; }
 
@@ -603,11 +611,22 @@ public final class BoxdClient {
                 finish(null, new BoxdException(502, "invalid_response", "Invalid WebSocket JSON frame"));
                 return;
             }
-            String type = stringValue(object, "type");
-            if (!"end".equals(type)) return;
+            ProcessWSEvent event = new ProcessWSEvent();
+            event.type = stringValue(object, "type");
+            JsonElement process = object.get("process");
+            if (process != null && process.isJsonObject()) {
+                event.process = process.getAsJsonObject();
+            }
+            if (!"end".equals(event.type)) {
+                if (onEvent != null) onEvent.onEvent(event);
+                return;
+            }
             JsonElement exitElement = object.get("exit");
-            finish(parseExit(exitElement != null && exitElement.isJsonObject()
-                    ? exitElement.getAsJsonObject() : null), null);
+            ProcessExit result = parseExit(exitElement != null && exitElement.isJsonObject()
+                    ? exitElement.getAsJsonObject() : null);
+            event.exit = result;
+            if (onEvent != null) onEvent.onEvent(event);
+            finish(result, null);
         }
 
         public void send(ByteString data) {
@@ -682,6 +701,11 @@ public final class BoxdClient {
 
     public interface ProcessEventHandler {
         void onEvent(ProcessEvent event);
+    }
+
+    /** Receives flat WebSocket process events (start/data/keepalive/end). */
+    public interface ProcessSocketEventHandler {
+        void onEvent(ProcessWSEvent event);
     }
 
     public static final class Builder {

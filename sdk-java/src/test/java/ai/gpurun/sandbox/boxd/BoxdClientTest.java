@@ -183,13 +183,22 @@ class BoxdClientTest {
             }
         }));
         StringBuilder output = new StringBuilder();
+        List<ProcessWSEvent> events = new ArrayList<>();
         BoxdClient.ProcessSocket socket = client.connectProcess("p1",
-                bytes -> output.append(new String(bytes, StandardCharsets.UTF_8)));
+                bytes -> output.append(new String(bytes, StandardCharsets.UTF_8)),
+                events::add);
         try {
             ProcessExit exit = socket.awaitEnd(3, TimeUnit.SECONDS);
             assertEquals(3, exit.exitCode);
             assertEquals("done", exit.status);
             assertEquals("hello", output.toString());
+            assertEquals(2, events.size());
+            assertEquals("start", events.get(0).type);
+            assertNotNull(events.get(0).process);
+            assertEquals(7, events.get(0).process.get("pid").getAsInt());
+            assertEquals("end", events.get(1).type);
+            assertNotNull(events.get(1).exit);
+            assertEquals(3, events.get(1).exit.exitCode);
         } finally {
             socket.close();
         }

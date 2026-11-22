@@ -45,6 +45,7 @@ type ProcessSocket struct {
 	ws       *websocketConn
 	onOutput func([]byte)
 	onEnd    func(ProcessExit)
+	onEvent  func(ProcessWSEvent)
 	done     chan struct{}
 	result   socketResult
 	once     sync.Once
@@ -52,7 +53,23 @@ type ProcessSocket struct {
 	closed   bool
 }
 
-func (c *Client) ConnectProcess(id string, onOutput func([]byte), onEnd func(ProcessExit)) (*ProcessSocket, error) {
+// ConnectProcessOption configures optional callbacks for ConnectProcess.
+type ConnectProcessOption func(*connectProcessOptions)
+
+type connectProcessOptions struct {
+	onEvent func(ProcessWSEvent)
+}
+
+// WithProcessEvent registers a callback for every WebSocket process event
+// (start, data, keepalive, end). boxd emits start/end as TEXT JSON frames;
+// boxproxy may rewrite them to BINARY, which ConnectProcess tolerates.
+func WithProcessEvent(fn func(ProcessWSEvent)) ConnectProcessOption {
+	return func(o *connectProcessOptions) {
+		o.onEvent = fn
+	}
+}
+
+func (c *Client) ConnectProcess(id string, onOutput func([]byte), onEnd func(ProcessExit), opts ...ConnectProcessOption) (*ProcessSocket, error) {
 	target, sandboxID, err := c.target("/processes/" + url.PathEscape(id) + "/connect")
 	if err != nil {
 		return nil, err
@@ -77,10 +94,15 @@ func (c *Client) ConnectProcess(id string, onOutput func([]byte), onEnd func(Pro
 	if err != nil {
 		return nil, err
 	}
+	options := connectProcessOptions{}
+	for _, opt := range opts {
+		opt(&options)
+	}
 	socket := &ProcessSocket{
 		ws:       ws,
 		onOutput: onOutput,
 		onEnd:    onEnd,
+		onEvent:  options.onEvent,
 		done:     make(chan struct{}),
 	}
 	go socket.run()
@@ -149,19 +171,34 @@ func (s *ProcessSocket) run() {
 
 func (s *ProcessSocket) handleEventPayload(payload []byte) bool {
 	var wire struct {
-		Type string          `json:"type"`
-		Exit json.RawMessage `json:"exit"`
+		Type    string          `json:"type"`
+		Process json.RawMessage `json:"process"`
+		Exit    json.RawMessage `json:"exit"`
 	}
 	if err := json.Unmarshal(payload, &wire); err != nil {
 		s.finish(ProcessExit{}, &Error{Status: 502, Code: "invalid_response", Message: "invalid WebSocket JSON frame", Err: err})
 		return true
 	}
-	if wire.Type != "end" {
-		return false
+	event := ProcessWSEvent{Type: wire.Type}
+	if len(wire.Process) > 0 && string(wire.Process) != "null" {
+		var info ProcessInfo
+		if err := json.Unmarshal(wire.Process, &info); err == nil {
+			event.Process = &info
+		}
 	}
-	exit, err := parseProcessExit(wire.Exit)
-	s.finish(exit, err)
-	return true
+	if wire.Type == "end" {
+		exit, err := parseProcessExit(wire.Exit)
+		event.Exit = &exit
+		if s.onEvent != nil {
+			s.onEvent(event)
+		}
+		s.finish(exit, err)
+		return true
+	}
+	if s.onEvent != nil {
+		s.onEvent(event)
+	}
+	return false
 }
 
 func isWSEventPayload(payload []byte) bool {

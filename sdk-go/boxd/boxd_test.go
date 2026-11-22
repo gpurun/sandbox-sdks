@@ -202,9 +202,11 @@ func TestConnectProcessWebSocket(t *testing.T) {
 	client := New(ClientOptions{BaseURL: server.URL, SandboxID: "sbx"})
 	var output []byte
 	var ended ProcessExit
+	var events []ProcessWSEvent
 	socket, err := client.ConnectProcess("proc-1",
 		func(chunk []byte) { output = append(output, chunk...) },
 		func(exit ProcessExit) { ended = exit },
+		WithProcessEvent(func(event ProcessWSEvent) { events = append(events, event) }),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -215,6 +217,12 @@ func TestConnectProcessWebSocket(t *testing.T) {
 	}
 	if string(output) != "hello" || exit.ExitCode != 0 || exit.Status != "completed" || ended.Status != "completed" {
 		t.Fatalf("output=%q exit=%#v ended=%#v", output, exit, ended)
+	}
+	if len(events) != 2 || events[0].Type != "start" || events[0].Process == nil || events[0].Process.PID != 7 {
+		t.Fatalf("events = %#v", events)
+	}
+	if events[1].Type != "end" || events[1].Exit == nil || events[1].Exit.Status != "completed" {
+		t.Fatalf("events = %#v", events)
 	}
 }
 
@@ -265,9 +273,11 @@ func TestConnectProcessWebSocketBinaryEventFrames(t *testing.T) {
 
 	client := New(ClientOptions{BaseURL: server.URL, SandboxID: "sbx"})
 	var output []byte
+	var events []ProcessWSEvent
 	socket, err := client.ConnectProcess("proc-1",
 		func(chunk []byte) { output = append(output, chunk...) },
 		nil,
+		WithProcessEvent(func(event ProcessWSEvent) { events = append(events, event) }),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -278,5 +288,11 @@ func TestConnectProcessWebSocketBinaryEventFrames(t *testing.T) {
 	}
 	if string(output) != "hello" || exit.ExitCode != 3 || exit.Status != "completed" {
 		t.Fatalf("output=%q exit=%#v", output, exit)
+	}
+	if len(events) != 2 || events[0].Type != "start" || events[0].Process == nil || events[0].Process.PID != 7 {
+		t.Fatalf("events = %#v", events)
+	}
+	if events[1].Type != "end" || events[1].Exit == nil || events[1].Exit.ExitCode != 3 {
+		t.Fatalf("events = %#v", events)
 	}
 }

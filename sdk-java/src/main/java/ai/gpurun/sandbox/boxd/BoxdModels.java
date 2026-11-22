@@ -1,5 +1,6 @@
 package ai.gpurun.sandbox.boxd;
 
+import com.google.gson.JsonObject;
 import com.google.gson.annotations.SerializedName;
 
 import java.util.ArrayList;
@@ -138,5 +139,12 @@ public final class BoxdModels {
     public static class ProcessEvent {
         @SerializedName("event")
         public ProcessEventBody event;
+    }
+
+    /** A flat frame from the process WebSocket connect endpoint (type/process/exit). */
+    public static class ProcessWSEvent {
+        public String type;
+        public JsonObject process;
+        public ProcessExit exit;
     }
 }
